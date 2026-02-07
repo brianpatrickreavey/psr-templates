@@ -75,6 +75,10 @@ def main():
         print("This script only runs on branches matching 'ci/*' pattern")
         sys.exit(1)
 
+    # Configure git for commits
+    run_git('config', 'user.name', 'PSR Test Harness', cwd=repo_path)
+    run_git('config', 'user.email', 'test-harness@ci.local', cwd=repo_path)
+
     print(f"Running on safe branch: {current_branch}")
 
     # Assume starting at 0.1.0
