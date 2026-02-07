@@ -19,9 +19,9 @@ def load_config(pyproject_path):
 
 def arrange_templates(templates_dir, fixture_dir, config):
     """Copy templates to destinations based on config."""
-    # Example: config = {'changelog': 'CHANGELOG.md', 'addon_xml': 'addon/addon.xml'}
+    # Example: config = {'universal/CHANGELOG.md.j2': 'templates/CHANGELOG.md.j2'}
     for template, dest in config.items():
-        src = templates_dir / f"{template}.j2"
+        src = templates_dir / template
         dst = fixture_dir / dest
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(src, dst)
@@ -51,7 +51,7 @@ def main():
     config = load_config(pyproject_path)
 
     arrange_templates(templates_dir, fixture_dir, config)
-    update_psr_config(pyproject_path, templates_dir)
+    # update_psr_config(pyproject_path, templates_dir)  # Templates are copied to fixture/templates/, so relative path "templates" works
 
     print("Arrangement complete.")
 
