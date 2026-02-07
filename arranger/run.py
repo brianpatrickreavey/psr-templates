@@ -8,6 +8,7 @@ copies templates, and updates PSR config.
 
 import shutil
 import sys
+import argparse
 from pathlib import Path
 import tomllib  # Python 3.11+, or tomli for older
 
@@ -40,12 +41,13 @@ def update_psr_config(fixture_pyproject, templates_dir):
     print(f"Updated PSR config in {fixture_pyproject}")
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: python run.py <templates_dir> <fixture_dir>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Arrange PSR templates into fixture directory.")
+    parser.add_argument('--templates-dir', required=True, help='Path to the templates directory')
+    parser.add_argument('--fixture-dir', default='.', help='Path to the fixture directory (default: current directory)')
+    args = parser.parse_args()
 
-    templates_dir = Path(sys.argv[1])
-    fixture_dir = Path(sys.argv[2])
+    templates_dir = Path(args.templates_dir)
+    fixture_dir = Path(args.fixture_dir)
 
     pyproject_path = fixture_dir / 'pyproject.toml'
     config = load_config(pyproject_path)
