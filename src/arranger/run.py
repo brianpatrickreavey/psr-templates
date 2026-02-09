@@ -47,7 +47,7 @@ def build_mappings(config, args):
     return mappings
 
 
-def arrange_templates(fixture_dir, mappings):
+def arrange_templates(fixture_dir, mappings, override=False):
     """Place templates."""
     # Assume templates are in psr_templates.templates
     templates_package = "psr_templates.templates"
@@ -57,8 +57,7 @@ def arrange_templates(fixture_dir, mappings):
         # Place raw template content
         dst = fixture_dir / target
         dst.parent.mkdir(parents=True, exist_ok=True)
-        if dst.exists():
-            raise FileExistsError(f"Target {dst} already exists")
+        # Overwrite if exists
         dst.write_text(content)
         print(f"Placed {template} to {dst}")
 
@@ -76,6 +75,9 @@ def main():
     parser.add_argument(
         "--changelog-only", action="store_true", help="Only create changelog"
     )
+    parser.add_argument(
+        "--override", action="store_true", help="Override default mappings"
+    )
     args = parser.parse_args()
 
     pyproject_path = Path("pyproject.toml")
@@ -84,7 +86,7 @@ def main():
 
     config = load_config(pyproject_path)
     mappings = build_mappings(config, args)
-    arrange_templates(Path("."), mappings)
+    arrange_templates(Path("."), mappings, override=args.override)
     print("Template structure built.")
 
 

@@ -113,10 +113,9 @@ class TestArrangeTemplates:
         assert mock_files.call_count == 2
         assert mock_dst.write_text.call_count == 2
 
-    def test_arrange_templates_file_exists_error(self, mocker):
-        """Test arrange_templates raises error if file exists."""
+    def test_arrange_templates_file_exists_overwrites(self, mocker):
+        """Test arrange_templates overwrites if file exists."""
         mock_files = mocker.patch("importlib.resources.files")
-        mock_template = mocker.patch("jinja2.Template")
         mock_dst = mocker.MagicMock()
         mock_dst.exists.return_value = True  # File exists
         mock_dst.parent.mkdir = mocker.MagicMock()
@@ -132,8 +131,7 @@ class TestArrangeTemplates:
         mock_file.__truediv__.return_value = mock_subfile
         mock_files.return_value = mock_file
 
-        with pytest.raises(FileExistsError):
-            arrange_templates(fixture_dir, mappings)
+        arrange_templates(fixture_dir, mappings)
 
 
 class TestBuildMappings:
@@ -262,13 +260,14 @@ class TestMain:
             mock_args.pypi = False
             mock_args.kodi_addon = False
             mock_args.changelog_only = False
+            mock_args.override = False
             mock_parse.return_value = mock_args
 
             main()
 
             mock_load_config.assert_called_once_with(Path("pyproject.toml"))
             mock_build_mappings.assert_called_once_with({"key": "value"}, mock_args)
-            mock_arrange.assert_called_once_with(Path("."), {"CHANGELOG.md": "universal/CHANGELOG.md.j2"})
+            mock_arrange.assert_called_once_with(Path("."), {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}, override=False)
 
             captured = capsys.readouterr()
             assert "Template structure built." in captured.out

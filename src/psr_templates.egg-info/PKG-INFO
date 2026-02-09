@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: psr-templates
+Version: 0.1.0
+Summary: PSR Template Test Harness
+Requires-Python: >=3.8
+Requires-Dist: tomli; python_version < "3.11"

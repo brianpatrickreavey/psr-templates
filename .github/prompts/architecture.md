@@ -17,5 +17,6 @@ This project is a Python package providing a CLI tool for placing PSR templates 
 
 ### Decisions
 - CLI tool installed as package (pip install psr-templates) for easy distribution.
-- No rendering in arranger; raw .j2 files placed for PSR to process.
+- No rendering in arranger; raw .j2 files placed for PSR to process (no Jinja2 dependency in arranger).
+- Arranger overwrites existing files without error (no --override flag needed, as templates are raw and PSR handles rendering).
 - importlib.resources preferred over file copying for embedded assets.
