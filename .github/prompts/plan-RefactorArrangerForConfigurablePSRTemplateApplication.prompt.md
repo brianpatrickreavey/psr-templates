@@ -16,6 +16,7 @@ TL;DR: Refactor the arranger module to read source/target paths from the consumi
 - Test fixture repo dev dependency installation and template checkout.
 - Manual end-to-end test: Create a sample consuming repo with pyproject.toml config, run arranger commands, verify raw templates are placed correctly (PSR handles rendering separately).
 - CI tests pass with new config parsing and mode flags.
+- **Act Testing**: Use `act` to simulate GitHub Actions locally for safe, isolated testing of fixture repo integration. In the fixture repo (`psr-templates-fixture`), run `make ci-simulate` to trigger the test-harness workflow via repository_dispatch event (defined in `.act/event.json`). This checks out the templates repo, installs dependencies, runs pre/post PSR tests, and executes the full pipeline without local system impact. Update workflows as needed for new CLI interface.
 
 **Decisions**
 - Chose pyproject.toml [tool.arranger] section for config to follow Python packaging standards (similar to [tool.black] or [tool.isort]).
