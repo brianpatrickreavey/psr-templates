@@ -44,7 +44,7 @@ def test_commit_generation(temp_git_repo):
     subprocess.run(["git", "checkout", "-b", "ci/test"], cwd=temp_git_repo, check=True)
 
     # Run generate_commits.py
-    script_path = Path("/home/bpreavey/Code/psr-templates/tools/generate_commits.py")
+    script_path = Path(__file__).parent.parent.parent / "tools" / "generate_commits.py"
     subprocess.run(["python", str(script_path), str(temp_git_repo)], check=True)
 
     # Check git log
