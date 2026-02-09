@@ -15,10 +15,8 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["arranger*"]
-
-[tool.setuptools.package-data]
-psr_templates = ["templates/**/*"]
+where = ["src"]
+include = ["arranger"]
 
 [tool.uv]
 package = true
