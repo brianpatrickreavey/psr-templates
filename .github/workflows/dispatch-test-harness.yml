@@ -1,0 +1,23 @@
+name: Dispatch Test Harness
+
+on:
+  workflow_dispatch:
+    inputs:
+      templates_ref:
+        description: 'Ref to use for templates repo'
+        required: true
+        default: 'main'
+      run_id:
+        description: 'Unique run ID'
+        required: true
+        default: 'manual-run-001'
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch to fixture repo
+        run: |
+          gh api repos/${{ github.repository_owner }}/psr-templates-fixture/dispatches \
+            -f event_type=test-harness-run \
+            -f client_payload='{"templates_repo": "${{ github.repository }}", "templates_ref": "${{ inputs.templates_ref }}", "run_id": "${{ inputs.run_id }}"}'
