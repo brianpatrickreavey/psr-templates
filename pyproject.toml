@@ -1,2 +1,8 @@
+[project]
+name = "psr-templates"
+version = "0.1.0"
+description = "PSR Template Test Harness"
+requires-python = ">=3.8"
+
 [dependency-groups]
-dev = ["pytest", "pytest-mock"]
+dev = ["pytest", "pytest-mock", "pytest-cov", "flake8", "black"]
