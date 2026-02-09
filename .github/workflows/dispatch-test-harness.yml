@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch to fixture repo
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api repos/${{ github.repository_owner }}/psr-templates-fixture/dispatches \
-            -f event_type=test-harness-run \
-            -f client_payload='{"templates_repo": "${{ github.repository }}", "templates_ref": "${{ inputs.templates_ref }}", "run_id": "${{ inputs.run_id }}"}'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          repository: ${{ github.repository_owner }}/psr-templates-fixture
+          event-type: test-harness-run
+          client-payload: '{"templates_repo": "${{ github.repository }}", "templates_ref": "${{ inputs.templates_ref }}", "run_id": "${{ inputs.run_id }}"}'
+          token: ${{ secrets.DISPATCH_TOKEN }}
