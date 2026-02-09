@@ -2,13 +2,12 @@
 """
 Arranger script: Build template structure from PSR templates.
 
-Reads config from pyproject.toml [tool.arranger], renders templates, and places them.
+Reads config from pyproject.toml [tool.arranger], places templates.
 """
 
 import argparse
 from pathlib import Path
 import tomllib
-import jinja2
 import importlib.resources
 
 
@@ -30,39 +29,38 @@ def build_mappings(config, args):
     mappings = {}
     # Default: changelog
     mappings["CHANGELOG.md"] = "universal/CHANGELOG.md.j2"
-    
+
     if config.get("use-default-pypi-structure") or args.pypi:
         # TODO: Add PyPI defaults
         pass
-    
+
     if config.get("use-default-kodi-addon-structure") or args.kodi_addon:
         kodi_name = config.get("kodi-project-name")
         mappings["addon.xml"] = f"kodi/{kodi_name}/addon.xml"
-    
+
     # Add custom mappings
     for target, template in config.get("source-mappings", {}).items():
         if target in mappings:
             raise ValueError(f"Cannot override default mapping for {target}")
         mappings[target] = template
-    
+
     return mappings
 
 
 def arrange_templates(fixture_dir, mappings):
-    """Render and place templates."""
+    """Place templates."""
     # Assume templates are in psr_templates.templates
     templates_package = "psr_templates.templates"
     for target, template in mappings.items():
         template_file = importlib.resources.files(templates_package) / template
         content = template_file.read_text()
-        # Render with empty context for now
-        rendered = jinja2.Template(content).render()
+        # Place raw template content
         dst = fixture_dir / target
         dst.parent.mkdir(parents=True, exist_ok=True)
         if dst.exists():
             raise FileExistsError(f"Target {dst} already exists")
-        dst.write_text(rendered)
-        print(f"Rendered {template} to {dst}")
+        dst.write_text(content)
+        print(f"Placed {template} to {dst}")
 
 
 def main():

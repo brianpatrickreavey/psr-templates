@@ -59,10 +59,9 @@ class TestLoadConfig:
 
 
 class TestArrangeTemplates:
-    def test_arrange_templates_renders_files(self, mocker):
-        """Test that arrange_templates renders templates."""
+    def test_arrange_templates_places_files(self, mocker):
+        """Test that arrange_templates places templates."""
         mock_files = mocker.patch("importlib.resources.files")
-        mock_template = mocker.patch("jinja2.Template")
         mock_dst = mocker.MagicMock()
         mock_dst.exists.return_value = False
         mock_dst.parent.mkdir = mocker.MagicMock()
@@ -79,23 +78,16 @@ class TestArrangeTemplates:
         mock_file.__truediv__.return_value = mock_subfile
         mock_files.return_value = mock_file
 
-        mock_template_instance = mocker.MagicMock()
-        mock_template_instance.render.return_value = "rendered content"
-        mock_template.return_value = mock_template_instance
-
         arrange_templates(fixture_dir, mappings)
 
         fixture_dir.__truediv__.assert_called_once_with("CHANGELOG.md")
         mock_files.assert_called_once_with("psr_templates.templates")
         mock_file.__truediv__.assert_called_once_with("universal/CHANGELOG.md.j2")
-        mock_template.assert_called_once_with("template content")
-        mock_template_instance.render.assert_called_once_with()
-        mock_dst.write_text.assert_called_once_with("rendered content")
+        mock_dst.write_text.assert_called_once_with("template content")
 
     def test_arrange_templates_multiple_files(self, mocker):
-        """Test rendering multiple files."""
+        """Test placing multiple files."""
         mock_files = mocker.patch("importlib.resources.files")
-        mock_template = mocker.patch("jinja2.Template")
         mock_dst = mocker.MagicMock()
         mock_dst.exists.return_value = False
         mock_dst.parent.mkdir = mocker.MagicMock()
@@ -115,15 +107,11 @@ class TestArrangeTemplates:
         mock_file.__truediv__.return_value = mock_subfile
         mock_files.return_value = mock_file
 
-        mock_template_instance = mocker.MagicMock()
-        mock_template_instance.render.return_value = "rendered content"
-        mock_template.return_value = mock_template_instance
-
         arrange_templates(fixture_dir, mappings)
 
         assert fixture_dir.__truediv__.call_count == 2
         assert mock_files.call_count == 2
-        assert mock_template.call_count == 2
+        assert mock_dst.write_text.call_count == 2
 
     def test_arrange_templates_file_exists_error(self, mocker):
         """Test arrange_templates raises error if file exists."""

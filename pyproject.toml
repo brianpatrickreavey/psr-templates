@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "PSR Template Test Harness"
 requires-python = ">=3.8"
 dependencies = [
-    "jinja2",
     "tomli; python_version < '3.11'",
 ]
 
