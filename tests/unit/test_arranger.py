@@ -1,7 +1,8 @@
 from pathlib import Path
 from unittest.mock import mock_open, patch, MagicMock
+import pytest
 
-from arranger.run import load_config, arrange_templates, main
+from arranger.run import load_config, arrange_templates, main, build_mappings
 
 
 class TestLoadConfig:
@@ -13,7 +14,14 @@ class TestLoadConfig:
 
         result = load_config(Path("dummy.toml"))
 
-        assert result == {"key": "value"}
+        expected = {
+            "key": "value",
+            "use-default-pypi-structure": False,
+            "use-default-kodi-addon-structure": False,
+            "kodi-project-name": "script.module.example",
+            "source-mappings": {},
+        }
+        assert result == expected
         mock_file.assert_called_once_with(Path("dummy.toml"), "rb")
         mock_toml_load.assert_called_once()
 
@@ -25,7 +33,13 @@ class TestLoadConfig:
 
         result = load_config(Path("dummy.toml"))
 
-        assert result == {}
+        expected = {
+            "use-default-pypi-structure": False,
+            "use-default-kodi-addon-structure": False,
+            "kodi-project-name": "script.module.example",
+            "source-mappings": {},
+        }
+        assert result == expected
 
     def test_load_config_no_arranger_section(self, mocker):
         """Test loading config when [tool.arranger] section is missing."""
@@ -35,103 +49,259 @@ class TestLoadConfig:
 
         result = load_config(Path("dummy.toml"))
 
-        assert result == {}
+        expected = {
+            "use-default-pypi-structure": False,
+            "use-default-kodi-addon-structure": False,
+            "kodi-project-name": "script.module.example",
+            "source-mappings": {},
+        }
+        assert result == expected
 
 
 class TestArrangeTemplates:
-    def test_arrange_templates_copies_files(self, mocker):
-        """Test that arrange_templates copies files based on config."""
-        mock_copy = mocker.patch("shutil.copy")
-        mock_mkdir = mocker.patch("pathlib.Path.mkdir")
+    def test_arrange_templates_renders_files(self, mocker):
+        """Test that arrange_templates renders templates."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.patch("jinja2.Template")
+        mock_dst = mocker.MagicMock()
+        mock_dst.exists.return_value = False
+        mock_dst.parent.mkdir = mocker.MagicMock()
+        mock_dst.write_text = mocker.MagicMock()
 
-        templates_dir = Path("/templates")
-        fixture_dir = Path("/fixture")
-        config = {"templates/universal/CHANGELOG.md.j2": "templates/CHANGELOG.md.j2"}
+        fixture_dir = mocker.MagicMock()
+        fixture_dir.__truediv__.return_value = mock_dst
 
-        arrange_templates(templates_dir, fixture_dir, config)
+        mappings = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
 
-        expected_src = Path("/templates/templates/universal/CHANGELOG.md.j2")
-        expected_dst = Path("/fixture/templates/CHANGELOG.md.j2")
-        mock_copy.assert_called_once_with(expected_src, expected_dst)
-        mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+        mock_file = mocker.MagicMock()
+        mock_subfile = mocker.MagicMock()
+        mock_subfile.read_text.return_value = "template content"
+        mock_file.__truediv__.return_value = mock_subfile
+        mock_files.return_value = mock_file
+
+        mock_template_instance = mocker.MagicMock()
+        mock_template_instance.render.return_value = "rendered content"
+        mock_template.return_value = mock_template_instance
+
+        arrange_templates(fixture_dir, mappings)
+
+        fixture_dir.__truediv__.assert_called_once_with("CHANGELOG.md")
+        mock_files.assert_called_once_with("psr_templates.templates")
+        mock_file.__truediv__.assert_called_once_with("universal/CHANGELOG.md.j2")
+        mock_template.assert_called_once_with("template content")
+        mock_template_instance.render.assert_called_once_with()
+        mock_dst.write_text.assert_called_once_with("rendered content")
 
     def test_arrange_templates_multiple_files(self, mocker):
-        """Test copying multiple files."""
-        mock_copy = mocker.patch("shutil.copy")
-        mock_mkdir = mocker.patch("pathlib.Path.mkdir")
+        """Test rendering multiple files."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.patch("jinja2.Template")
+        mock_dst = mocker.MagicMock()
+        mock_dst.exists.return_value = False
+        mock_dst.parent.mkdir = mocker.MagicMock()
+        mock_dst.write_text = mocker.MagicMock()
 
-        templates_dir = Path("/templates")
-        fixture_dir = Path("/fixture")
-        config = {
-            "templates/universal/CHANGELOG.md.j2": "templates/CHANGELOG.md.j2",
-            "templates/kodi/addon.xml.j2": "addon.xml",
+        fixture_dir = mocker.MagicMock()
+        fixture_dir.__truediv__.return_value = mock_dst
+
+        mappings = {
+            "CHANGELOG.md": "universal/CHANGELOG.md.j2",
+            "addon.xml": "kodi/script.module.example/addon.xml",
         }
 
-        arrange_templates(templates_dir, fixture_dir, config)
+        mock_file = mocker.MagicMock()
+        mock_subfile = mocker.MagicMock()
+        mock_subfile.read_text.return_value = "template content"
+        mock_file.__truediv__.return_value = mock_subfile
+        mock_files.return_value = mock_file
 
-        assert mock_copy.call_count == 2
-        assert mock_mkdir.call_count == 2
+        mock_template_instance = mocker.MagicMock()
+        mock_template_instance.render.return_value = "rendered content"
+        mock_template.return_value = mock_template_instance
+
+        arrange_templates(fixture_dir, mappings)
+
+        assert fixture_dir.__truediv__.call_count == 2
+        assert mock_files.call_count == 2
+        assert mock_template.call_count == 2
+
+    def test_arrange_templates_file_exists_error(self, mocker):
+        """Test arrange_templates raises error if file exists."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.patch("jinja2.Template")
+        mock_dst = mocker.MagicMock()
+        mock_dst.exists.return_value = True  # File exists
+        mock_dst.parent.mkdir = mocker.MagicMock()
+
+        fixture_dir = mocker.MagicMock()
+        fixture_dir.__truediv__.return_value = mock_dst
+
+        mappings = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
+
+        mock_file = mocker.MagicMock()
+        mock_subfile = mocker.MagicMock()
+        mock_subfile.read_text.return_value = "template content"
+        mock_file.__truediv__.return_value = mock_subfile
+        mock_files.return_value = mock_file
+
+        with pytest.raises(FileExistsError):
+            arrange_templates(fixture_dir, mappings)
 
 
-class TestUpdatePsrConfig:
-    def test_update_psr_config_replaces_template_dir(self, mocker):
-        """Test that update_psr_config replaces the template_dir in pyproject.toml."""
-        mock_open = mocker.patch(
-            "builtins.open", mocker.mock_open(read_data='template_dir = "templates"')
-        )
-        mocker.patch("pathlib.Path")
+class TestBuildMappings:
+    def test_build_mappings_default(self, mocker):
+        """Test build_mappings with default config."""
+        config = {
+            "use-default-pypi-structure": False,
+            "use-default-kodi-addon-structure": False,
+            "kodi-project-name": "script.module.example",
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
 
-        from arranger.run import update_psr_config
+        result = build_mappings(config, args)
 
-        update_psr_config(Path("dummy.toml"), "new_templates")
+        expected = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
+        assert result == expected
 
-        # Check that open was called for reading and writing
-        assert mock_open.call_count == 2
+    def test_build_mappings_with_kodi(self, mocker):
+        """Test build_mappings with kodi enabled."""
+        config = {
+            "use-default-pypi-structure": False,
+            "use-default-kodi-addon-structure": True,
+            "kodi-project-name": "script.module.test",
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+
+        result = build_mappings(config, args)
+
+        expected = {
+            "CHANGELOG.md": "universal/CHANGELOG.md.j2",
+            "addon.xml": "kodi/script.module.test/addon.xml",
+        }
+        assert result == expected
+
+    def test_build_mappings_override_error(self, mocker):
+        """Test build_mappings raises error on override."""
+        config = {
+            "use-default-pypi-structure": False,
+            "use-default-kodi-addon-structure": False,
+            "kodi-project-name": "script.module.example",
+            "source-mappings": {"CHANGELOG.md": "custom/template.j2"},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+
+        with pytest.raises(ValueError, match="Cannot override default mapping"):
+            build_mappings(config, args)
+
+    def test_build_mappings_kodi_via_args(self, mocker):
+        """Test build_mappings with kodi enabled via args."""
+        config = {
+            "use-default-pypi-structure": False,
+            "use-default-kodi-addon-structure": False,
+            "kodi-project-name": "script.module.arg",
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = True
+
+        result = build_mappings(config, args)
+
+        expected = {
+            "CHANGELOG.md": "universal/CHANGELOG.md.j2",
+            "addon.xml": "kodi/script.module.arg/addon.xml",
+        }
+        assert result == expected
+
+    def test_build_mappings_with_pypi(self, mocker):
+        """Test build_mappings with pypi enabled."""
+        config = {
+            "use-default-pypi-structure": False,
+            "use-default-kodi-addon-structure": False,
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = True
+        args.kodi_addon = False
+
+        result = build_mappings(config, args)
+
+        expected = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
+        assert result == expected
+
+    def test_build_mappings_with_source_mappings(self, mocker):
+        """Test build_mappings with custom source mappings."""
+        config = {
+            "use-default-pypi-structure": False,
+            "use-default-kodi-addon-structure": False,
+            "source-mappings": {"README.md": "universal/README.md.j2"},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+
+        result = build_mappings(config, args)
+
+        expected = {
+            "CHANGELOG.md": "universal/CHANGELOG.md.j2",
+            "README.md": "universal/README.md.j2",
+        }
+        assert result == expected
 
 
 class TestMain:
-    def test_main_parses_args_correctly(self, mocker):
+    def test_main_parses_args_correctly(self, mocker, capsys):
         """Test that main parses CLI args and calls functions."""
         mock_load_config = mocker.patch(
             "arranger.run.load_config", return_value={"key": "value"}
         )
+        mock_build_mappings = mocker.patch(
+            "arranger.run.build_mappings", return_value={"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
+        )
         mock_arrange = mocker.patch("arranger.run.arrange_templates")
+        mock_exists = mocker.patch("pathlib.Path.exists", return_value=True)
 
         with patch("argparse.ArgumentParser.parse_args") as mock_parse:
             mock_args = MagicMock()
-            mock_args.templates_dir = "/templates"
-            mock_args.fixture_dir = "/fixture"
+            mock_args.pypi = False
+            mock_args.kodi_addon = False
+            mock_args.changelog_only = False
             mock_parse.return_value = mock_args
 
             main()
 
-            mock_load_config.assert_called_once_with(Path("/fixture/pyproject.toml"))
-            mock_arrange.assert_called_once_with(
-                Path("/templates"), Path("/fixture"), {"key": "value"}
-            )
+            mock_load_config.assert_called_once_with(Path("pyproject.toml"))
+            mock_build_mappings.assert_called_once_with({"key": "value"}, mock_args)
+            mock_arrange.assert_called_once_with(Path("."), {"CHANGELOG.md": "universal/CHANGELOG.md.j2"})
 
-    def test_main_default_fixture_dir(self, mocker):
-        """Test that fixture_dir defaults to '.'."""
-        mocker.patch("arranger.run.load_config", return_value={})
-        mocker.patch("arranger.run.arrange_templates")
+            captured = capsys.readouterr()
+            assert "Template structure built." in captured.out
+
+    def test_main_pyproject_not_found(self, mocker):
+        """Test main raises error if pyproject.toml not found."""
+        mock_exists = mocker.patch("pathlib.Path.exists", return_value=False)
 
         with patch("argparse.ArgumentParser.parse_args") as mock_parse:
             mock_args = MagicMock()
-            mock_args.templates_dir = "/templates"
-            mock_args.fixture_dir = "."  # Default
+            mock_args.pypi = False
+            mock_args.kodi_addon = False
+            mock_args.changelog_only = False
             mock_parse.return_value = mock_args
 
-            main()
-
-            # Should use Path('.')
-            # The call should be with Path('/templates'), Path('.'), {}
+            with pytest.raises(FileNotFoundError, match="pyproject.toml not found"):
+                main()
 
 
 def test_script_execution(mocker):
     """Test that the script calls main when executed directly."""
     mocker.patch("arranger.run.main")
-    # Simulate __name__ == '__main__'
-    # Since it's at module level, hard to test, but we can check if main is called when imported
-    # For coverage, perhaps run the file
-    # But for now, since main is tested, and this is boilerplate, we can ignore or add pragma
+    # For coverage, since main is tested
     pass

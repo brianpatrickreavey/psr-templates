@@ -3,6 +3,26 @@ name = "psr-templates"
 version = "0.1.0"
 description = "PSR Template Test Harness"
 requires-python = ">=3.8"
+dependencies = [
+    "jinja2",
+    "tomli; python_version < '3.11'",
+]
+
+[project.scripts]
+psr-build-template-structure = "arranger.run:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["arranger*"]
+
+[tool.setuptools.package-data]
+psr_templates = ["templates/**/*"]
+
+[tool.uv]
+package = true
 
 [dependency-groups]
 dev = ["pytest", "pytest-mock", "pytest-cov", "flake8", "black"]

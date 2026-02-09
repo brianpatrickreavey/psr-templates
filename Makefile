@@ -2,15 +2,15 @@
 
 # Unit tests with coverage
 test-unit:
-	PYTHONPATH=. pytest tests/unit/ --cov=arranger --cov-report=term-missing --cov-fail-under=100
+	pytest tests/unit/ --cov=arranger --cov-report=term-missing --cov-fail-under=100
 
 # Pre-PSR integration tests
 test-integration-pre:
-	PYTHONPATH=. pytest tests/integration/pre_psr/ -v
+	pytest tests/integration/pre_psr/ -v
 
 # Post-PSR integration tests (with mocks)
 test-integration-post:
-	PYTHONPATH=. pytest tests/integration/post_psr/ -v
+	pytest tests/integration/post_psr/ -v
 
 # Full test suite
 test-full: test-unit test-integration-pre test-integration-post
