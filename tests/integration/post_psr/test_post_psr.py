@@ -11,7 +11,7 @@ import os
 
 def test_version_number_extraction(mock_psr_response):
     """Test that version numbers are extracted correctly from PSR output."""
-    if os.getenv("PSR_VALIDATE_REAL"):
+    if os.getenv("PSR_VALIDATE_REAL") == "1":
         # Validate real PSR output: check for version in CHANGELOG.md or pyproject.toml
         changelog_path = Path("../CHANGELOG.md")  # Relative to templates/
         if changelog_path.exists():
@@ -27,7 +27,7 @@ def test_version_number_extraction(mock_psr_response):
 
 def test_changelog_generation(mock_psr_response, temp_git_repo):
     """Test that changelog is generated with correct dates and content."""
-    if os.getenv("PSR_VALIDATE_REAL"):
+    if os.getenv("PSR_VALIDATE_REAL") == "1":
         # Validate real changelog
         changelog_path = Path("../CHANGELOG.md")
         assert changelog_path.exists()
@@ -44,7 +44,7 @@ def test_changelog_generation(mock_psr_response, temp_git_repo):
 
 def test_tag_creation(temp_git_repo, mock_psr_response):
     """Test that tags are created correctly."""
-    if os.getenv("PSR_VALIDATE_REAL"):
+    if os.getenv("PSR_VALIDATE_REAL") == "1":
         # Validate real tags in fixture repo
         result = subprocess.run(
             ["git", "tag", "-l"], cwd=Path("../"), capture_output=True, text=True
