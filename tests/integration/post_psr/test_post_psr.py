@@ -83,7 +83,7 @@ def test_cleanup_after_failure(temp_git_repo):
             raise Exception("Simulated failure")
         except Exception:
             # Perform cleanup - just attempt it, don't worry if it fails
-            subprocess.run(["git", "checkout", "main"], cwd=temp_git_repo, check=False)
+            subprocess.run(["git", "checkout", "master"], cwd=temp_git_repo, check=False)
             subprocess.run(["git", "branch", "-D", "test-branch"], cwd=temp_git_repo, check=False)
             # Re-raise the original exception
             raise
