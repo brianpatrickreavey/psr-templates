@@ -168,7 +168,7 @@ class TestBuildMappings:
 
         expected = {
             "CHANGELOG.md": "universal/CHANGELOG.md.j2",
-            "addon.xml": "kodi/script.module.test/addon.xml",
+            "kodi/script.module.test/addon.xml": "kodi-addons/addon.xml.j2",
         }
         assert result == expected
 
@@ -203,7 +203,7 @@ class TestBuildMappings:
 
         expected = {
             "CHANGELOG.md": "universal/CHANGELOG.md.j2",
-            "addon.xml": "kodi/script.module.arg/addon.xml",
+            "kodi/script.module.arg/addon.xml": "kodi-addons/addon.xml.j2",
         }
         assert result == expected
 

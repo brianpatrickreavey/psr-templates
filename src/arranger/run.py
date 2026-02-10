@@ -36,7 +36,7 @@ def build_mappings(config, args):
 
     if config.get("use-default-kodi-addon-structure") or args.kodi_addon:
         kodi_name = config.get("kodi-project-name")
-        mappings["addon.xml"] = f"kodi/{kodi_name}/addon.xml"
+        mappings[f"kodi/{kodi_name}/addon.xml"] = "kodi-addons/addon.xml.j2"
 
     # Add custom mappings
     for target, template in config.get("source-mappings", {}).items():
