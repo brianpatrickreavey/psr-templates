@@ -50,7 +50,7 @@ def build_mappings(config, args):
 def arrange_templates(fixture_dir, mappings, override=False):
     """Place templates."""
     # Assume templates are in psr_templates.templates
-    templates_package = "psr_templates.templates"
+    templates_package = "arranger.templates"
     for target, template in mappings.items():
         template_file = importlib.resources.files(templates_package) / template
         content = template_file.read_text()

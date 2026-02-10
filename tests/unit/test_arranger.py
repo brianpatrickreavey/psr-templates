@@ -81,7 +81,7 @@ class TestArrangeTemplates:
         arrange_templates(fixture_dir, mappings)
 
         fixture_dir.__truediv__.assert_called_once_with("CHANGELOG.md")
-        mock_files.assert_called_once_with("psr_templates.templates")
+        mock_files.assert_called_once_with("arranger.templates")
         mock_file.__truediv__.assert_called_once_with("universal/CHANGELOG.md.j2")
         mock_dst.write_text.assert_called_once_with("template content")
 
