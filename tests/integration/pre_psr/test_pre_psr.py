@@ -18,8 +18,8 @@ def test_template_arrangement(temp_git_repo, sample_config):
     from arranger.run import load_config, arrange_templates
 
     config = load_config(
-        Path("/home/bpreavey/Code/psr-templates-fixture/pyproject.toml")
-    )  # Need to adjust
+        Path("../pyproject.toml")
+    )  # Relative to repo directory
 
     # For now, placeholder
     assert True  # TODO: Implement real test
