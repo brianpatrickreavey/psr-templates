@@ -1,4 +1,4 @@
-.PHONY: test-unit test-integration-pre test-integration-post test-full lint format
+.PHONY: test-unit test-integration-pre test-integration-post test-full lint format install-dev run-test-harness
 
 # Unit tests with coverage
 test-unit:
@@ -27,3 +27,9 @@ format:
 # Install dev dependencies
 install-dev:
 	uv sync --group dev
+
+# Run test harness workflow
+run-test-harness:
+	gh workflow run --repo brianpatrickreavey/psr-templates dispatch-test-harness.yml \
+		-f templates_ref=main \
+		-f run_id=gha-test-run-$$(date +%Y%m%d-%H%M%S)

@@ -20,3 +20,23 @@ This project is a Python package providing a CLI tool for placing PSR templates 
 - No rendering in arranger; raw .j2 files placed for PSR to process (no Jinja2 dependency in arranger).
 - Arranger overwrites existing files without error (no --override flag needed, as templates are raw and PSR handles rendering).
 - importlib.resources preferred over file copying for embedded assets.
+
+## CI/Test Harness Architecture
+
+The CI/test harness is designed to validate PSR template placement and semantic release functionality in an isolated environment, ensuring no pollution of the source repositories.
+
+### Repository Roles
+- **psr-templates**: Source of truth for templates, tests, and configuration. Remains untouched during testing.
+- **psr-templates-fixture**: Isolated test environment ("harness") where all test artifacts—commits, pushes, tags, releases, and modifications—live. This keeps the harness self-contained.
+
+### Workflow Overview
+1. **pre-psr-tests**: Sets up environments, runs pre-PSR integration tests on templates, arranges templates into fixture, generates test commits in fixture, and pushes the test branch to fixture.
+2. **psr-execution**: Checks out the prepared fixture branch and runs PSR to analyze commits, create tags/releases, and generate changelog—all within fixture.
+3. **post-psr-tests**: Runs post-PSR tests (currently on templates, but can be adjusted).
+4. **cleanup**: Removes test branches and tags from fixture.
+
+### Key Principles
+- **Isolation**: Test artifacts are confined to fixture; templates repo is read-only.
+- **Reusability**: Composite actions for shared steps (arranger, commit generation, PSR execution).
+- **Compatibility**: Supports both GitHub Actions and local ACT testing with conditional logic.
+- **Permissions**: Workflow has `contents: write` to push branches in fixture.
