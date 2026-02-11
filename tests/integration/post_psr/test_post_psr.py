@@ -16,13 +16,13 @@ def test_version_number_extraction(mock_psr_response):
         changelog_path = Path("../CHANGELOG.md")  # Relative to templates/
         if changelog_path.exists():
             content = changelog_path.read_text()
-            assert "## [1.0.0]" in content  # Example assertion
+            assert "## v0.1.0" in content  # Check for version header
         else:
             pytest.skip("CHANGELOG.md not found")
     else:
         # Use mock
         version = mock_psr_response["version"]
-        assert version == "1.0.0"
+        assert version == "0.1.0"
 
 
 def test_changelog_generation(mock_psr_response, temp_git_repo):
@@ -32,12 +32,12 @@ def test_changelog_generation(mock_psr_response, temp_git_repo):
         changelog_path = Path("../CHANGELOG.md")
         assert changelog_path.exists()
         content = changelog_path.read_text()
-        assert "## [1.0.0]" in content
-        assert "2023-01-01" in content  # Example date check
+        assert "## v0.1.0" in content
+        assert "Initial Release" in content  # Check for content
     else:
         # Use mock
         changelog_content = mock_psr_response["changelog"]
-        assert "## [1.0.0]" in changelog_content
+        assert "## v0.1.0" in changelog_content
         assert "2023-01-01" in changelog_content
     assert "2023-01-01" in changelog_content
 
@@ -49,7 +49,7 @@ def test_tag_creation(temp_git_repo, mock_psr_response):
         result = subprocess.run(
             ["git", "tag", "-l"], cwd=Path("../"), capture_output=True, text=True
         )
-        assert "v1.0.0" in result.stdout  # Example tag check
+        assert "v0.1.0" in result.stdout  # Example tag check
     else:
         # Use mock simulation
         tag = mock_psr_response["tag"]

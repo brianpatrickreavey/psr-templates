@@ -37,9 +37,9 @@ def temp_git_repo():
 def mock_psr_response():
     """Mock response from PSR execution."""
     return {
-        "version": "1.0.0",
-        "tag": "v1.0.0",
-        "changelog": "## [1.0.0] - 2023-01-01\n### Added\n- Initial release\n",
+        "version": "0.1.0",
+        "tag": "v0.1.0",
+        "changelog": "## v0.1.0 - 2023-01-01\n### Added\n- Initial release\n",
         "artifacts": [],
     }
 
