@@ -6,7 +6,7 @@ Validates PSR outputs: version numbers, dates, tags, releases, artifacts.
 import pytest
 from pathlib import Path
 import subprocess
-import os
+import datetime
 
 
 def test_version_number_extraction(mock_psr_response):
@@ -34,12 +34,13 @@ def test_changelog_generation(mock_psr_response, temp_git_repo):
         content = changelog_path.read_text()
         assert "## v0.1.0" in content
         assert "Initial Release" in content  # Check for content
+        today = datetime.date.today().isoformat()
+        assert today in content  # Check for today's date
     else:
         # Use mock
         changelog_content = mock_psr_response["changelog"]
         assert "## v0.1.0" in changelog_content
         assert "2023-01-01" in changelog_content
-    assert "2023-01-01" in changelog_content
 
 
 def test_tag_creation(temp_git_repo, mock_psr_response):
