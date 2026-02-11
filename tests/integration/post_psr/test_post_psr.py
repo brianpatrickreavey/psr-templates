@@ -7,6 +7,7 @@ import pytest
 from pathlib import Path
 import subprocess
 import datetime
+import os
 
 
 def test_version_number_extraction(mock_psr_response):
