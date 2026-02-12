@@ -108,14 +108,20 @@ def test_release_artifacts():
         # We can make this conditional based on config, but start with >= 0
         assert asset_count >= 0
 
-        # If Kodi, check for specific ZIP name (e.g., script.module.example.zip)
+        # If Kodi, check for specific ZIP name (e.g., script.module.example-0.1.0.zip)
         if asset_count > 0:
+            result = subprocess.run(
+                ["gh", "api", f"repos/{os.getenv('GITHUB_REPOSITORY')}/releases/latest", "--jq", ".tag_name"],
+                capture_output=True, text=True, check=True
+            )
+            tag = result.stdout.strip()
+            version = tag.lstrip('v')
             result = subprocess.run(
                 ["gh", "api", f"repos/{os.getenv('GITHUB_REPOSITORY')}/releases/latest", "--jq", ".assets[].name"],
                 capture_output=True, text=True, check=True
             )
             asset_names = result.stdout.strip()
-            assert "script.module.example.zip" in asset_names  # Example for Kodi
+            assert f"script.module.example-{version}.zip" in asset_names  # Example for Kodi
     else:
         # Mock simulation (if needed)
         pass
