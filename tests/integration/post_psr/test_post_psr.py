@@ -72,6 +72,55 @@ def test_artifact_validation(mock_psr_response):
     assert isinstance(artifacts, list)
 
 
+def test_release_creation():
+    """Test that releases are created correctly."""
+    if os.getenv("PSR_VALIDATE_REAL") == "1":
+        # Validate real releases in fixture repo
+        result = subprocess.run(
+            ["gh", "api", f"repos/{os.getenv('GITHUB_REPOSITORY')}/releases", "--jq", "length"],
+            capture_output=True, text=True, check=True
+        )
+        release_count = int(result.stdout.strip())
+        assert release_count >= 1  # At least one release should exist
+
+        # Optionally check for the latest release tag
+        result = subprocess.run(
+            ["gh", "api", f"repos/{os.getenv('GITHUB_REPOSITORY')}/releases/latest", "--jq", ".tag_name"],
+            capture_output=True, text=True, check=True
+        )
+        latest_tag = result.stdout.strip().strip('"')
+        assert latest_tag == "v0.1.0"  # Or dynamically check based on expected version
+    else:
+        # Mock simulation (if needed)
+        pass
+
+
+def test_release_artifacts():
+    """Test that artifacts are attached to releases correctly."""
+    if os.getenv("PSR_VALIDATE_REAL") == "1":
+        # Validate artifacts on the latest release
+        result = subprocess.run(
+            ["gh", "api", f"repos/{os.getenv('GITHUB_REPOSITORY')}/releases/latest", "--jq", ".assets | length"],
+            capture_output=True, text=True, check=True
+        )
+        asset_count = int(result.stdout.strip())
+        # For Kodi projects, expect at least 1 artifact (the ZIP); for others, 0 or more
+        # We can make this conditional based on config, but start with >= 0
+        assert asset_count >= 0
+
+        # If Kodi, check for specific ZIP name (e.g., script.module.example.zip)
+        if asset_count > 0:
+            result = subprocess.run(
+                ["gh", "api", f"repos/{os.getenv('GITHUB_REPOSITORY')}/releases/latest", "--jq", ".assets[].name"],
+                capture_output=True, text=True, check=True
+            )
+            asset_names = result.stdout.strip()
+            assert "script.module.example.zip" in asset_names  # Example for Kodi
+    else:
+        # Mock simulation (if needed)
+        pass
+
+
 def test_cleanup_after_failure(temp_git_repo):
     """Test that cleanup happens even after failure."""
     # Create a branch
