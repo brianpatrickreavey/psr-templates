@@ -21,14 +21,16 @@ def load_config(pyproject_path):
     config.setdefault("use-default-kodi-addon-structure", False)
     config.setdefault("kodi-project-name", "script.module.example")
     config.setdefault("source-mappings", {})
+    config.setdefault("root_dir", ".")
     return config
 
 
 def build_mappings(config, args):
     """Build the target: template mappings."""
     mappings = {}
+    root_dir = config["root_dir"]
     # Default: changelog
-    mappings["CHANGELOG.md"] = "universal/CHANGELOG.md.j2"
+    mappings[f"{root_dir}/templates/CHANGELOG.md.j2"] = "universal/CHANGELOG.md.j2"
 
     if config.get("use-default-pypi-structure") or args.pypi:
         # TODO: Add PyPI defaults
@@ -36,7 +38,7 @@ def build_mappings(config, args):
 
     if config.get("use-default-kodi-addon-structure") or args.kodi_addon:
         kodi_name = config.get("kodi-project-name")
-        mappings[f"kodi/{kodi_name}/addon.xml"] = "kodi-addons/addon.xml.j2"
+        mappings[f"{root_dir}/templates/{kodi_name}/addon.xml.j2"] = "kodi-addons/addon.xml.j2"
 
     # Add custom mappings
     for target, template in config.get("source-mappings", {}).items():

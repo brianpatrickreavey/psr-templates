@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import datetime
 import os
+import xml.etree.ElementTree as ET
 
 
 def test_version_number_extraction(mock_psr_response):
@@ -122,6 +123,30 @@ def test_release_artifacts():
             )
             asset_names = result.stdout.strip()
             assert f"script.module.example-{version}.zip" in asset_names  # Example for Kodi
+
+            # Validate addon.xml contents
+            addon_xml_path = Path("kodi-addon-fixture/script.module.example/addon.xml")
+            assert addon_xml_path.exists(), "addon.xml should exist"
+            tree = ET.parse(addon_xml_path)
+            root = tree.getroot()
+            assert root.get("id") == "script.module.example"
+            assert root.get("version") == version
+            assert root.get("name") == "Example Module"
+            # Check other elements
+            requires = root.find("requires")
+            assert requires is not None
+            import_elem = requires.find("import")
+            assert import_elem.get("addon") == "xbmc.python"
+            assert import_elem.get("version") == "3.0.0"
+            extension = root.find("extension[@point='xbmc.python.module']")
+            assert extension is not None
+            assert extension.get("library") == "lib"
+            metadata = root.find("extension[@point='xbmc.addon.metadata']")
+            assert metadata is not None
+            summary = metadata.find("summary")
+            assert summary is not None and summary.text == "Example Kodi addon for PSR testing"
+            description = metadata.find("description")
+            assert description is not None and description.text == "Placeholder for testing addon.xml updates"
     else:
         # Mock simulation (if needed)
         pass

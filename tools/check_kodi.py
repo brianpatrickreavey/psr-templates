@@ -28,7 +28,7 @@ def main():
     if kodi_name:
         print(f"is_kodi=true")
         print(f"kodi_project_name={kodi_name}")
-        print(f"kodi_directory=fixture/kodi/{kodi_name}")
+        print(f"kodi_directory=kodi-addon-fixture/{kodi_name}")
     else:
         print("is_kodi=false")
 
