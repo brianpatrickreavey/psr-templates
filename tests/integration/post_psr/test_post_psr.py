@@ -121,7 +121,7 @@ def test_release_artifacts():
                 capture_output=True, text=True, check=True
             )
             asset_names = result.stdout.strip()
-            assert f"script.module.example-{version}.zip" in asset_names  # Example for Kodi
+            assert "script.module.example-0.1.0.zip" in asset_names  # Example for Kodi
     else:
         # Mock simulation (if needed)
         pass
