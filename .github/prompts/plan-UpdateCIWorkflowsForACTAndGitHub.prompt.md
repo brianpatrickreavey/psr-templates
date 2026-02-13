@@ -1,5 +1,7 @@
 ## Plan: Update CI Workflows for ACT and GitHub Compatibility with PSR Local Execution
 
+**STATUS: Superseded by plan-ComprehensiveRefactorForSelfContainedPSRTestHarness.prompt.md**
+
 TL;DR: Refactor the test-harness workflow in the fixture repo to support both ACT simulation and real GitHub Actions execution. Create two workflow files: one for ACT (single-job with local PSR dry-run) and one for GitHub (multi-job with real PSR). Use composite actions for shared logic to keep paths nearly identical. This enables safe local testing of the full PSR pipeline without mocking, while maintaining production CI functionality.
 
 **Steps**

@@ -1,5 +1,7 @@
 ## Plan: Refactor Arranger for Configurable PSR Template Application
 
+**STATUS: Superseded by plan-ComprehensiveRefactorForSelfContainedPSRTestHarness.prompt.md**
+
 TL;DR: Refactor the arranger module to read source/target paths from the consuming repo's pyproject.toml, add CLI flags for default modes (--pypi, --kodi-addon, --changelog-only), and ensure the fixture repo has a dev dependency to check out the main branch of the templates repo. This creates a user-friendly, declarative workflow where users configure PSR in their pyproject.toml and run simple commands, eliminating manual path specification and improving reproducibility. The target architecture is a CLI tool that installs as a package, reads config from pyproject.toml, and places raw templates with optional overrides. Rendering is handled externally by PSR.
 
 **Steps**

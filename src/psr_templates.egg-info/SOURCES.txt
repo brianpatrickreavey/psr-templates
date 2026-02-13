@@ -1,6 +1,10 @@
 pyproject.toml
 src/arranger/__init__.py
 src/arranger/run.py
+src/arranger/templates/__init__.py
+src/arranger/templates/__pycache__/__init__.cpython-313.pyc
+src/arranger/templates/kodi-addons/addon.xml.j2
+src/arranger/templates/universal/CHANGELOG.md.j2
 src/psr_templates.egg-info/PKG-INFO
 src/psr_templates.egg-info/SOURCES.txt
 src/psr_templates.egg-info/dependency_links.txt

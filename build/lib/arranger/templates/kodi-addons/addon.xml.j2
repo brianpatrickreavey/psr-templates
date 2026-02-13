@@ -1,0 +1,55 @@
+{#- --- pick newest release --- -#}
+{%- set versions = ctx.history.released.keys() | list -%}
+{%- if versions -%}
+{%- set ver = versions[0] -%}
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.module.test-semantic-release-for-kodi" name="Test Semantic Release Module" version="{{ ver }}" provider-name="Test Author">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+    </requires>
+    <extension point="xbmc.python.module" library="lib"/>
+    <extension point="xbmc.addon.metadata">
+        <summary>Test module for semantic release functionality</summary>
+        <description>Test module demonstrating automated semantic releases with conventional commits.</description>
+        <platform>all</platform>
+        <news>
+Release v{{ ver }}
+{%- set order_csv = ".test.txt" | read_file -%}
+{%- set order = order_csv.strip().split(",") -%}
+{{ order | join("\n") }}
+
+{# --- begin newest release --- #}
+{%- set rel = ctx.history.released[ver] -%}
+{%- set elements = rel["elements"] if "elements" in rel else rel.elements -%}
+
+{%- set section_for = {
+  "feat":"features",
+  "fix":"bug fixes",
+  "perf":"performance",
+  "refactor":"refactoring",
+  "docs":"documentation",
+  "test":"testing",
+  "chore":"chores"
+} -%}
+
+{%- set order = ["feat","fix","perf"] -%}
+
+{%- for tag in order -%}
+{%- set section = section_for[tag] -%}
+{%- if section in elements and elements[section] -%}
+{%- for item in elements[section] -%}
+{% for d in item.descriptions %}
+[{{ tag }}] {{ d }}
+{%- endfor -%}
+{%- for bd in item.breaking_descriptions -%}
+[{{ tag }}] BREAKING: {{ bd }}
+{%- endfor -%}
+{%- endfor -%}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+
+{# --- end newest release --- #}
+        </news>
+    </extension>
+</addon>

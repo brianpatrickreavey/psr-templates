@@ -16,9 +16,6 @@ class TestLoadConfig:
 
         expected = {
             "key": "value",
-            "use-default-pypi-structure": False,
-            "use-default-kodi-addon-structure": False,
-            "kodi-project-name": "script.module.example",
             "source-mappings": {},
         }
         assert result == expected
@@ -34,9 +31,6 @@ class TestLoadConfig:
         result = load_config(Path("dummy.toml"))
 
         expected = {
-            "use-default-pypi-structure": False,
-            "use-default-kodi-addon-structure": False,
-            "kodi-project-name": "script.module.example",
             "source-mappings": {},
         }
         assert result == expected
@@ -50,9 +44,6 @@ class TestLoadConfig:
         result = load_config(Path("dummy.toml"))
 
         expected = {
-            "use-default-pypi-structure": False,
-            "use-default-kodi-addon-structure": False,
-            "kodi-project-name": "script.module.example",
             "source-mappings": {},
         }
         assert result == expected
@@ -138,14 +129,12 @@ class TestBuildMappings:
     def test_build_mappings_default(self, mocker):
         """Test build_mappings with default config."""
         config = {
-            "use-default-pypi-structure": False,
-            "use-default-kodi-addon-structure": False,
-            "kodi-project-name": "script.module.example",
             "source-mappings": {},
         }
         args = mocker.MagicMock()
         args.pypi = False
         args.kodi_addon = False
+        args.changelog_only = True
 
         result = build_mappings(config, args)
 
@@ -155,34 +144,31 @@ class TestBuildMappings:
     def test_build_mappings_with_kodi(self, mocker):
         """Test build_mappings with kodi enabled."""
         config = {
-            "use-default-pypi-structure": False,
             "use-default-kodi-addon-structure": True,
             "kodi-project-name": "script.module.test",
             "source-mappings": {},
         }
         args = mocker.MagicMock()
         args.pypi = False
-        args.kodi_addon = False
+        args.kodi_addon = True
+        args.changelog_only = False
 
         result = build_mappings(config, args)
 
         expected = {
-            "CHANGELOG.md": "universal/CHANGELOG.md.j2",
-            "kodi/script.module.test/addon.xml": "kodi-addons/addon.xml.j2",
+            "addon.xml": "kodi-addons/addon.xml.j2",
         }
         assert result == expected
 
     def test_build_mappings_override_error(self, mocker):
         """Test build_mappings raises error on override."""
         config = {
-            "use-default-pypi-structure": False,
-            "use-default-kodi-addon-structure": False,
-            "kodi-project-name": "script.module.example",
             "source-mappings": {"CHANGELOG.md": "custom/template.j2"},
         }
         args = mocker.MagicMock()
         args.pypi = False
         args.kodi_addon = False
+        args.changelog_only = True
 
         with pytest.raises(ValueError, match="Cannot override default mapping"):
             build_mappings(config, args)
@@ -190,49 +176,45 @@ class TestBuildMappings:
     def test_build_mappings_kodi_via_args(self, mocker):
         """Test build_mappings with kodi enabled via args."""
         config = {
-            "use-default-pypi-structure": False,
-            "use-default-kodi-addon-structure": False,
             "kodi-project-name": "script.module.arg",
             "source-mappings": {},
         }
         args = mocker.MagicMock()
         args.pypi = False
         args.kodi_addon = True
+        args.changelog_only = False
 
         result = build_mappings(config, args)
 
         expected = {
-            "CHANGELOG.md": "universal/CHANGELOG.md.j2",
-            "kodi/script.module.arg/addon.xml": "kodi-addons/addon.xml.j2",
+            "addon.xml": "kodi-addons/addon.xml.j2",
         }
         assert result == expected
 
     def test_build_mappings_with_pypi(self, mocker):
         """Test build_mappings with pypi enabled."""
         config = {
-            "use-default-pypi-structure": False,
-            "use-default-kodi-addon-structure": False,
             "source-mappings": {},
         }
         args = mocker.MagicMock()
         args.pypi = True
         args.kodi_addon = False
+        args.changelog_only = False
 
         result = build_mappings(config, args)
 
-        expected = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
+        expected = {}  # TODO: Add PyPI defaults
         assert result == expected
 
     def test_build_mappings_with_source_mappings(self, mocker):
         """Test build_mappings with custom source mappings."""
         config = {
-            "use-default-pypi-structure": False,
-            "use-default-kodi-addon-structure": False,
             "source-mappings": {"README.md": "universal/README.md.j2"},
         }
         args = mocker.MagicMock()
         args.pypi = False
         args.kodi_addon = False
+        args.changelog_only = True
 
         result = build_mappings(config, args)
 

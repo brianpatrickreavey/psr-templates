@@ -1,5 +1,7 @@
 # Plan: Refactor Workflow for Self-Contained PSR Execution in Kodi Addon Fixture
 
+**STATUS: Superseded by plan-ComprehensiveRefactorForSelfContainedPSRTestHarness.prompt.md**
+
 ## Overview
 Refactor the CI workflow to make the `psr-execution` job self-contained, simulating a "normal" addon repository's PSR process. This involves operating from `kodi-addon-fixture` as the addon root, moving the arranger step to `psr-execution`, and ensuring templates are placed correctly for PSR to find them. This addresses the path issues where arranger places files in the wrong location, causing PSR to report "No contents found."
 

@@ -8,9 +8,9 @@ This document outlines the comprehensive testing strategy for the PSR (Python Se
 - **Integration Tests**: End-to-end tests with 95% coverage goal. Use real actions (git commits, tags, PSR execution) in phases. Focus on file outputs, version numbers, dates, ending tags/releases, and release artifacts. Fail fast and clean up after failures.
 - **Directory Structure**:
   - `tests/unit/`: Unit tests (e.g., `test_arranger.py`, `test_config.py`).
-  - `tests/integration/pre_psr/`: Pre-PSR validation tests.
-  - `tests/integration/post_psr/`: Post-PSR validation tests.
-  - `tests/conftest.py`: Shared fixtures (temp git repos, mock PSR responses).
+  - `psr-templates-fixture/tests/integration/pre_psr/`: Pre-PSR validation tests (moved to fixture repo).
+  - `psr-templates-fixture/tests/integration/post_psr/`: Post-PSR validation tests (moved to fixture repo).
+  - `psr-templates-fixture/tests/conftest.py`: Shared fixtures (moved to fixture repo).
 - **Tools**: pytest for all tests; act for local CI simulation; GitHub Actions for full CI. Use Make for consistent execution.
 
 ## What Can Be Run Locally (pytest and/or act)

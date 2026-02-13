@@ -18,6 +18,9 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 include = ["arranger"]
 
+[tool.setuptools.package-data]
+arranger = ["templates/**/*"]
+
 [tool.uv]
 package = true
 
