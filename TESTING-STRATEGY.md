@@ -33,6 +33,20 @@ This document outlines the comprehensive testing strategy for the PSR (Python Se
 - **CI-Specific Scenarios**: Tests for commit types (breaking changes, features, fixes) and failures (e.g., PSR errors, pre-existing changelog/addon.xml).
 - **Execution**: Trigger via repository dispatch; use job dependencies for phased testing.
 
+## Simplified CI Workflow Approach
+
+To avoid venv conflicts and complex dependency management, the CI workflow follows this simplified approach:
+
+- **Always commit and push changes to `psr-templates` main before testing**
+- **No checkout of `psr-templates` repo in CI** - dependencies are installed via git URLs
+- **Workflow steps**:
+  1. Checkout `psr-templates-fixture` repo
+  2. Set up venv (`/tmp/venv`)
+  3. `uv sync --group dev` (installs `psr-templates@main` and `pytest` from fixture's `pyproject.toml`)
+  4. Run pre-PSR tests
+- **Benefits**: Eliminates venv conflicts, simplifies workflow, ensures tests run against committed code
+- **Local development**: For testing without push, use `uv pip install -e ../psr-templates` in fixture repo
+
 ## Detailed Test Phases (Integration)
 
 - **Pre-PSR Phase**:
