@@ -28,6 +28,23 @@ The CI/test harness is designed to validate PSR template placement and semantic 
 ### Repository Roles
 - **psr-templates**: Source of truth for templates, tests, and configuration. Remains untouched during testing.
 - **psr-templates-fixture**: Isolated test environment ("harness") where all test artifacts—commits, pushes, tags, releases, and modifications—live. This keeps the harness self-contained.
+  ```
+  fixture-repo-root/
+  ├── kodi-addon-fixture/
+  │   ├── templates/
+  │   │   ├── CHANGELOG.md.j2  (raw .j2 content placed here)
+  │   │   └── script.module.example/
+  │   │       └── addon.xml.j2  (raw .j2 content placed here)
+  │   ├── pyproject.toml
+  │   └── script.module.example/
+  │       └── addon.xml
+  ├── pypi-fixture/
+  ├── psr-templates/
+  ├── .github/
+  ├── Makefile
+  ├── README.md
+  └── pyproject.toml
+  ```
 
 ### Workflow Overview
 1. **pre-psr-tests**: Sets up environments, runs pre-PSR integration tests on templates, arranges templates into fixture, generates test commits in fixture, and pushes the test branch to fixture.

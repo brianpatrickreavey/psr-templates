@@ -125,7 +125,7 @@ def test_release_artifacts():
             assert f"script.module.example-{version}.zip" in asset_names  # Example for Kodi
 
             # Validate addon.xml contents
-            addon_xml_path = Path("kodi-addon-fixture/script.module.example/addon.xml")
+            addon_xml_path = Path("../kodi-addon-fixture/script.module.example/addon.xml")
             assert addon_xml_path.exists(), "addon.xml should exist"
             tree = ET.parse(addon_xml_path)
             root = tree.getroot()

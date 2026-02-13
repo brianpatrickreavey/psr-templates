@@ -14,6 +14,10 @@ Be truthful and factual; avoid anthropomorphism.
 
 Prioritize correct, robust code; avoid workarounds, shortcuts, or bad patterns.
 
+### CI/CD Workflow Rules
+
+- Always use the python-semantic-release GitHub Action in CI workflows. Never replace it with run commands or other execution methods.
+
 ## GIT Conventions
 
 Use trunk-based development with feature branches as needed. Use Conventional Commits for commit messages (e.g., `feat: add new feature`, `fix: resolve bug`). Avoid merge commits; rebase feature branches onto main before merging. Ensure all commits are atomic and focused on a single change or feature.

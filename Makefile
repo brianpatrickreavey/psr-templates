@@ -33,3 +33,29 @@ run-test-harness:
 	gh workflow run --repo brianpatrickreavey/psr-templates dispatch-test-harness.yml \
 		-f templates_ref=main \
 		-f run_id=gha-test-run-$$(date +%Y%m%d-%H%M%S)
+
+# Watch the latest test harness run in fixture repo
+watch-test-harness-output:
+	@echo "Finding the latest workflow run in psr-templates-fixture..."
+	@RUN_ID=$$(gh run list --repo brianpatrickreavey/psr-templates-fixture --workflow="test-harness.yml" --limit 1 --json databaseId -q '.[0].databaseId'); \
+	if [ -z "$$RUN_ID" ]; then \
+		echo "No recent runs found."; \
+		exit 1; \
+	fi; \
+	echo "Watching run $$RUN_ID..."; \
+	gh run watch --repo brianpatrickreavey/psr-templates-fixture $$RUN_ID
+
+# Get status of the latest test harness run
+status-test-harness:
+	@echo "Latest test harness run status:"
+	@gh run list --repo brianpatrickreavey/psr-templates-fixture --workflow="test-harness.yml" --limit 1
+
+# View logs of the latest test harness run
+logs-test-harness:
+	@echo "Fetching logs for the latest test harness run..."
+	@RUN_ID=$$(gh run list --repo brianpatrickreavey/psr-templates-fixture --workflow="test-harness.yml" --limit 1 --json databaseId -q '.[0].databaseId'); \
+	if [ -z "$$RUN_ID" ]; then \
+		echo "No recent runs found."; \
+		exit 1; \
+	fi; \
+	gh run view --repo brianpatrickreavey/psr-templates-fixture $$RUN_ID --log
