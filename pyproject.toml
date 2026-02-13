@@ -21,8 +21,5 @@ include = ["arranger"]
 [tool.setuptools.package-data]
 arranger = ["templates/**/*"]
 
-[tool.uv]
-package = true
-
 [dependency-groups]
 dev = ["pytest", "pytest-mock", "pytest-cov", "flake8", "black"]
