@@ -24,4 +24,4 @@ find = {where = ["src"]}
 arranger = ["templates/**/*"]
 
 [dependency-groups]
-dev = ["pytest", "pytest-mock", "pytest-cov", "flake8", "black"]
+dev = ["pytest", "pytest-mock", "pytest-cov", "flake8", "black", "python-semantic-release>=10.5.3"]
