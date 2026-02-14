@@ -45,13 +45,11 @@ def build_mappings(config, args):
 
     if args.kodi_addon or config.get("use-default-kodi-addon-structure"):
         # For Kodi addons, place addon.xml.j2 in the addon's subdirectory within templates
-        # Per PSR monorepo docs, the template directory structure must mirror the output structure
+        # Template directory structure mirrors output structure per PSR design
         kodi_project_name = config.get("kodi-project-name")
         if kodi_project_name:
-            # Template path includes the fixture subdirectory name so PSR renders to the correct location
-            # e.g., templates/kodi-addon-fixture/script.module.example/addon.xml.j2 -> kodi-addon-fixture/script.module.example/addon.xml
-            fixture_subdir = config.get("fixture-subdir", "kodi-addon-fixture")
-            mappings[f"{templates_dir}/{fixture_subdir}/{kodi_project_name}/addon.xml.j2"] = "kodi-addons/addon.xml.j2"
+            # e.g., templates/script.module.example/addon.xml.j2 -> script.module.example/addon.xml
+            mappings[f"{templates_dir}/{kodi_project_name}/addon.xml.j2"] = "kodi-addons/addon.xml.j2"
         else:
             # Fallback to root templates if no project name
             mappings[f"{templates_dir}/addon.xml.j2"] = "kodi-addons/addon.xml.j2"
