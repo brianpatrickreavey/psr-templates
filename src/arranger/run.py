@@ -44,7 +44,13 @@ def build_mappings(config, args):
         pass
 
     if args.kodi_addon or config.get("use-default-kodi-addon-structure"):
-        mappings[f"{templates_dir}/addon.xml.j2"] = "kodi-addons/addon.xml.j2"
+        # For Kodi addons, place addon.xml.j2 in the addon's subdirectory within templates
+        kodi_project_name = config.get("kodi-project-name")
+        if kodi_project_name:
+            mappings[f"{templates_dir}/{kodi_project_name}/addon.xml.j2"] = "kodi-addons/addon.xml.j2"
+        else:
+            # Fallback to root templates if no project name
+            mappings[f"{templates_dir}/addon.xml.j2"] = "kodi-addons/addon.xml.j2"
 
     if args.changelog_only or (flag_count == 0):
         mappings[f"{templates_dir}/CHANGELOG.md.j2"] = "universal/CHANGELOG.md.j2"
