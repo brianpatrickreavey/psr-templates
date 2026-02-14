@@ -138,7 +138,7 @@ class TestBuildMappings:
 
         result = build_mappings(config, args)
 
-        expected = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
+        expected = {"templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2"}
         assert result == expected
 
     def test_build_mappings_with_kodi(self, mocker):
@@ -156,14 +156,15 @@ class TestBuildMappings:
         result = build_mappings(config, args)
 
         expected = {
-            "addon.xml": "kodi-addons/addon.xml.j2",
+            "templates/script.module.test/addon.xml.j2": "kodi-addons/addon.xml.j2",
+            "templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2",
         }
         assert result == expected
 
     def test_build_mappings_override_error(self, mocker):
         """Test build_mappings raises error on override."""
         config = {
-            "source-mappings": {"CHANGELOG.md": "custom/template.j2"},
+            "source-mappings": {"templates/CHANGELOG.md.j2": "custom/template.j2"},
         }
         args = mocker.MagicMock()
         args.pypi = False
@@ -198,7 +199,8 @@ class TestBuildMappings:
         result = build_mappings(config, args)
 
         expected = {
-            "addon.xml": "kodi-addons/addon.xml.j2",
+            "templates/script.module.arg/addon.xml.j2": "kodi-addons/addon.xml.j2",
+            "templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2",
         }
         assert result == expected
 
@@ -214,7 +216,8 @@ class TestBuildMappings:
 
         result = build_mappings(config, args)
 
-        expected = {}  # TODO: Add PyPI defaults
+        # Changelog is always included even when PyPI is enabled
+        expected = {"templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2"}
         assert result == expected
 
     def test_build_mappings_with_source_mappings(self, mocker):
@@ -230,7 +233,7 @@ class TestBuildMappings:
         result = build_mappings(config, args)
 
         expected = {
-            "CHANGELOG.md": "universal/CHANGELOG.md.j2",
+            "templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2",
             "README.md": "universal/README.md.j2",
         }
         assert result == expected
@@ -243,7 +246,7 @@ class TestMain:
             "arranger.run.load_config", return_value={"key": "value"}
         )
         mock_build_mappings = mocker.patch(
-            "arranger.run.build_mappings", return_value={"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
+            "arranger.run.build_mappings", return_value={"templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2"}
         )
         mock_arrange = mocker.patch("arranger.run.arrange_templates")
         mock_exists = mocker.patch("pathlib.Path.exists", return_value=True)
@@ -260,7 +263,7 @@ class TestMain:
 
             mock_load_config.assert_called_once_with(Path("pyproject.toml"))
             mock_build_mappings.assert_called_once_with({"key": "value"}, mock_args)
-            mock_arrange.assert_called_once_with(Path("."), {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}, override=False)
+            mock_arrange.assert_called_once_with(Path("."), {"templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2"}, override=False)
 
             captured = capsys.readouterr()
             assert "Template structure built." in captured.out
