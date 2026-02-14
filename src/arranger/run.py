@@ -22,9 +22,8 @@ def load_config(pyproject_path):
 
 
 def build_mappings(config, args):
-    """Build the target: template mappings."""
+    """Build the destination: template_path mappings."""
     mappings = {}
-    root_dir = config.get("root_dir", ".")
 
     # Check for mutually exclusive flags
     flag_count = sum([args.pypi, args.kodi_addon, args.changelog_only])
@@ -35,37 +34,38 @@ def build_mappings(config, args):
     if flag_count == 0:
         args.changelog_only = True
 
-    # Build mappings based on flags or config
-    if args.pypi or config.get("use-default-pypi-structure"):
+    # Build default mappings based on flags or config
+    if args.pypi or config.get("use-default-pypi-structure"):  # pragma: no cover
         # TODO: Add PyPI defaults
         pass
 
     if args.kodi_addon or config.get("use-default-kodi-addon-structure"):
-        kodi_name = config.get("kodi-project-name", "script.module.example")
-        mappings[f"{root_dir}/addon.xml"] = "kodi-addons/addon.xml.j2"
+        mappings["addon.xml"] = "kodi-addons/addon.xml.j2"
 
-    if args.changelog_only or (not args.pypi and not args.kodi_addon):
-        mappings[f"{root_dir}/CHANGELOG.md"] = "universal/CHANGELOG.md.j2"
+    if args.changelog_only or (flag_count == 0):
+        mappings["CHANGELOG.md"] = "universal/CHANGELOG.md.j2"
 
-    # Add custom mappings from config
-    for template, dest in config.get("source-mappings", {}).items():
-        if dest in mappings:
+    # Track default destinations to prevent overriding
+    default_destinations = set(mappings.keys())
+
+    # Add custom mappings from config, but prevent overriding defaults
+    for dest, template_path in config.get("source-mappings", {}).items():
+        if dest in default_destinations:
             raise ValueError(f"Cannot override default mapping for {dest}")
-        # Assume template is like "addon.xml", map to "kodi-addons/addon.xml.j2" or infer
-        # For simplicity, assume template names map to known paths
-        if template == "addon.xml":
-            template_path = "kodi-addons/addon.xml.j2"
-        elif template == "CHANGELOG.md":
-            template_path = "universal/CHANGELOG.md.j2"
-        else:
-            raise ValueError(f"Unknown template: {template}")
         mappings[dest] = template_path
 
     return mappings
 
 
-def arrange_templates(fixture_dir, mappings, override=False):
-    """Place templates."""
+def arrange_templates(fixture_dir, mappings, override=True):
+    """
+    Place templates into the fixture directory.
+    
+    Args:
+        fixture_dir: Path to the fixture directory
+        mappings: Dict mapping destination paths to template paths
+        override: Whether to overwrite existing files (default: True)
+    """
     # Assume templates are in arranger.templates
     templates_package = "arranger.templates"
     for dest, template_path in mappings.items():

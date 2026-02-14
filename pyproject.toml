@@ -14,9 +14,11 @@ psr-build-template-structure = "arranger.run:main"
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["arranger"]
+[tool.setuptools.packages]
+find = {where = ["src"]}
+
+[tool.setuptools.package-dir]
+"" = "src"
 
 [tool.setuptools.package-data]
 arranger = ["templates/**/*"]

@@ -173,6 +173,17 @@ class TestBuildMappings:
         with pytest.raises(ValueError, match="Cannot override default mapping"):
             build_mappings(config, args)
 
+    def test_build_mappings_mutually_exclusive_flags(self, mocker):
+        """Test build_mappings raises error on mutually exclusive flags."""
+        config = {"source-mappings": {}}
+        args = mocker.MagicMock()
+        args.pypi = True
+        args.kodi_addon = True  # Conflicting with pypi
+        args.changelog_only = False
+
+        with pytest.raises(ValueError, match="mutually exclusive"):
+            build_mappings(config, args)
+
     def test_build_mappings_kodi_via_args(self, mocker):
         """Test build_mappings with kodi enabled via args."""
         config = {
