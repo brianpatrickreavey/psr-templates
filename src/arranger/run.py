@@ -9,6 +9,7 @@ import argparse
 from pathlib import Path
 import tomllib
 import importlib.resources
+from importlib.resources import files
 
 
 def load_config(pyproject_path):
