@@ -14,9 +14,6 @@
         <platform>all</platform>
         <news>
 Release v{{ ver }}
-{%- set order_csv = ".test.txt" | read_file -%}
-{%- set order = order_csv.strip().split(",") -%}
-{{ order | join("\n") }}
 
 {# --- begin newest release --- #}
 {%- set rel = ctx.history.released[ver] -%}
