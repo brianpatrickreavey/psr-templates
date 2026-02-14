@@ -34,16 +34,19 @@ def build_mappings(config, args):
     if flag_count == 0:
         args.changelog_only = True
 
+    # Get templates directory (default: "templates", can be configured)
+    templates_dir = config.get("templates-dir", "templates")
+
     # Build default mappings based on flags or config
     if args.pypi or config.get("use-default-pypi-structure"):  # pragma: no cover
         # TODO: Add PyPI defaults
         pass
 
     if args.kodi_addon or config.get("use-default-kodi-addon-structure"):
-        mappings["addon.xml"] = "kodi-addons/addon.xml.j2"
+        mappings[f"{templates_dir}/addon.xml.j2"] = "kodi-addons/addon.xml.j2"
 
     if args.changelog_only or (flag_count == 0):
-        mappings["CHANGELOG.md"] = "universal/CHANGELOG.md.j2"
+        mappings[f"{templates_dir}/CHANGELOG.md.j2"] = "universal/CHANGELOG.md.j2"
 
     # Track default destinations to prevent overriding
     default_destinations = set(mappings.keys())
