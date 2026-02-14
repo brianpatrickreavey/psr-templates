@@ -54,8 +54,8 @@ def build_mappings(config, args):
             # Fallback to root templates if no project name
             mappings[f"{templates_dir}/addon.xml.j2"] = "kodi-addons/addon.xml.j2"
 
-    if args.changelog_only or (flag_count == 0):
-        mappings[f"{templates_dir}/CHANGELOG.md.j2"] = "universal/CHANGELOG.md.j2"
+    # Always include changelog in addition to other templates
+    mappings[f"{templates_dir}/CHANGELOG.md.j2"] = "universal/CHANGELOG.md.j2"
 
     # Track default destinations to prevent overriding
     default_destinations = set(mappings.keys())
