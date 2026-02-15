@@ -72,7 +72,7 @@ def build_mappings(config, args):
 def arrange_templates(fixture_dir, mappings, override=True):
     """
     Place templates into the fixture directory.
-    
+
     Args:
         fixture_dir: Path to the fixture directory
         mappings: Dict mapping destination paths to template paths
