@@ -1,2 +1,0 @@
-[console_scripts]
-psr-build-template-structure = arranger.run:main

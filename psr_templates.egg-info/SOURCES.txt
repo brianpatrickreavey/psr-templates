@@ -1,9 +1,0 @@
-pyproject.toml
-arranger/__init__.py
-arranger/run.py
-psr_templates.egg-info/PKG-INFO
-psr_templates.egg-info/SOURCES.txt
-psr_templates.egg-info/dependency_links.txt
-psr_templates.egg-info/entry_points.txt
-psr_templates.egg-info/requires.txt
-psr_templates.egg-info/top_level.txt
