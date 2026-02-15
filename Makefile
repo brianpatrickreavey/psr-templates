@@ -1,4 +1,13 @@
-.PHONY: test-unit test-integration-pre test-integration-post test-full lint format install-dev run-test-harness
+.PHONY: test-unit test-integration-pre test-integration-post test-full lint format install-dev run-test-harness clean
+
+# Clean build artifacts, caches, and generated files
+clean:
+	rm -rf build/ dist/ *.egg-info src/*.egg-info
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name htmlcov -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name .coverage -delete 2>/dev/null || true
+	find . -type f -name '*.pyc' -delete 2>/dev/null || true
 
 # Unit tests with coverage
 test-unit:
