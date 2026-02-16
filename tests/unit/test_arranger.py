@@ -3,6 +3,7 @@ from unittest.mock import mock_open, patch, MagicMock
 import pytest
 
 from arranger.run import load_config, arrange_templates, main, build_mappings
+from conftest import setup_fixture_and_templates_mocks
 
 
 class TestLoadConfig:
@@ -96,91 +97,39 @@ class TestLoadConfig:
 class TestArrangeTemplates:
     def test_arrange_templates_places_files(self, mocker):
         """Test that arrange_templates places templates."""
-        mock_files = mocker.patch("importlib.resources.files")
-        mock_dst = mocker.MagicMock()
-        mock_dst.exists.return_value = False
-        mock_dst.is_symlink.return_value = False
-        mock_dst.parent.mkdir = mocker.MagicMock()
-        mock_dst.write_text = mocker.MagicMock()
-
-        fixture_dir = mocker.MagicMock(spec=Path)
-        fixture_dir_resolved = mocker.MagicMock(spec=Path)
-        fixture_dir.resolve.return_value = fixture_dir_resolved
-        fixture_dir_resolved.mkdir = mocker.MagicMock()
-        fixture_dir_resolved.__truediv__.return_value = mock_dst
+        mocks = setup_fixture_and_templates_mocks(mocker)
 
         mappings = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
+        arrange_templates(mocks["fixture_dir"], mappings)
 
-        mock_file = mocker.MagicMock()
-        mock_subfile = mocker.MagicMock()
-        mock_subfile.read_text.return_value = "template content"
-        mock_file.__truediv__.return_value = mock_subfile
-        mock_files.return_value = mock_file
-
-        arrange_templates(fixture_dir, mappings)
-
-        fixture_dir_resolved.__truediv__.assert_called_once_with("CHANGELOG.md")
-        mock_files.assert_called_once_with("arranger.templates")
-        mock_file.__truediv__.assert_called_once_with("universal/CHANGELOG.md.j2")
-        mock_dst.write_text.assert_called_once_with("template content", encoding="utf-8")
+        mocks["fixture_dir_resolved"].__truediv__.assert_called_with("CHANGELOG.md")
+        mocks["mock_files"].assert_called_once_with("arranger.templates")
+        mocks["mock_root"].__truediv__.assert_called_with("universal/CHANGELOG.md.j2")
+        mocks["mock_dst"].write_text.assert_called_once_with("template content", encoding="utf-8")
 
     def test_arrange_templates_multiple_files(self, mocker):
         """Test placing multiple files."""
-        mock_files = mocker.patch("importlib.resources.files")
-        mock_dst = mocker.MagicMock()
-        mock_dst.exists.return_value = False
-        mock_dst.is_symlink.return_value = False
-        mock_dst.parent.mkdir = mocker.MagicMock()
-        mock_dst.write_text = mocker.MagicMock()
-
-        fixture_dir = mocker.MagicMock(spec=Path)
-        fixture_dir_resolved = mocker.MagicMock(spec=Path)
-        fixture_dir.resolve.return_value = fixture_dir_resolved
-        fixture_dir_resolved.mkdir = mocker.MagicMock()
-        fixture_dir_resolved.__truediv__.return_value = mock_dst
+        mocks = setup_fixture_and_templates_mocks(mocker)
 
         mappings = {
             "CHANGELOG.md": "universal/CHANGELOG.md.j2",
             "addon.xml": "kodi/script.module.example/addon.xml",
         }
+        arrange_templates(mocks["fixture_dir"], mappings)
 
-        mock_file = mocker.MagicMock()
-        mock_subfile = mocker.MagicMock()
-        mock_subfile.read_text.return_value = "template content"
-        mock_file.__truediv__.return_value = mock_subfile
-        mock_files.return_value = mock_file
-
-        arrange_templates(fixture_dir, mappings)
-
-        assert fixture_dir_resolved.__truediv__.call_count == 2
-        assert mock_files.call_count == 1
-        assert mock_dst.write_text.call_count == 2
+        assert mocks["fixture_dir_resolved"].__truediv__.call_count == 2
+        assert mocks["mock_files"].call_count == 1
+        assert mocks["mock_dst"].write_text.call_count == 2
 
     def test_arrange_templates_file_exists_overwrites(self, mocker):
         """Test arrange_templates overwrites if file exists."""
-        mock_files = mocker.patch("importlib.resources.files")
-        mock_dst = mocker.MagicMock()
-        mock_dst.exists.return_value = True  # File exists
-        mock_dst.is_symlink.return_value = False
-        mock_dst.parent.mkdir = mocker.MagicMock()
-        mock_dst.write_text = mocker.MagicMock()
-
-        fixture_dir = mocker.MagicMock(spec=Path)
-        fixture_dir_resolved = mocker.MagicMock(spec=Path)
-        fixture_dir.resolve.return_value = fixture_dir_resolved
-        fixture_dir_resolved.mkdir = mocker.MagicMock()
-        fixture_dir_resolved.__truediv__.return_value = mock_dst
+        mocks = setup_fixture_and_templates_mocks(mocker)
+        mocks["mock_dst"].exists.return_value = True  # File exists
 
         mappings = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
+        arrange_templates(mocks["fixture_dir"], mappings, override=True)
 
-        mock_file = mocker.MagicMock()
-        mock_subfile = mocker.MagicMock()
-        mock_subfile.read_text.return_value = "template content"
-        mock_file.__truediv__.return_value = mock_subfile
-        mock_files.return_value = mock_file
-
-        arrange_templates(fixture_dir, mappings, override=True)
-        mock_dst.write_text.assert_called_once()
+        mocks["mock_dst"].write_text.assert_called_once()
 
     def test_arrange_templates_missing_source(self, mocker, tmp_path):
         """Test error handling when template file doesn't exist (E1.1)."""
