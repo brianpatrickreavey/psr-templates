@@ -98,11 +98,15 @@ class TestArrangeTemplates:
         mock_files = mocker.patch("importlib.resources.files")
         mock_dst = mocker.MagicMock()
         mock_dst.exists.return_value = False
+        mock_dst.is_symlink.return_value = False
         mock_dst.parent.mkdir = mocker.MagicMock()
         mock_dst.write_text = mocker.MagicMock()
 
-        fixture_dir = mocker.MagicMock()
-        fixture_dir.__truediv__.return_value = mock_dst
+        fixture_dir = mocker.MagicMock(spec=Path)
+        fixture_dir_resolved = mocker.MagicMock(spec=Path)
+        fixture_dir.resolve.return_value = fixture_dir_resolved
+        fixture_dir_resolved.mkdir = mocker.MagicMock()
+        fixture_dir_resolved.__truediv__.return_value = mock_dst
 
         mappings = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
 
@@ -114,7 +118,7 @@ class TestArrangeTemplates:
 
         arrange_templates(fixture_dir, mappings)
 
-        fixture_dir.__truediv__.assert_called_once_with("CHANGELOG.md")
+        fixture_dir_resolved.__truediv__.assert_called_once_with("CHANGELOG.md")
         mock_files.assert_called_once_with("arranger.templates")
         mock_file.__truediv__.assert_called_once_with("universal/CHANGELOG.md.j2")
         mock_dst.write_text.assert_called_once_with("template content", encoding="utf-8")
@@ -124,11 +128,15 @@ class TestArrangeTemplates:
         mock_files = mocker.patch("importlib.resources.files")
         mock_dst = mocker.MagicMock()
         mock_dst.exists.return_value = False
+        mock_dst.is_symlink.return_value = False
         mock_dst.parent.mkdir = mocker.MagicMock()
         mock_dst.write_text = mocker.MagicMock()
 
-        fixture_dir = mocker.MagicMock()
-        fixture_dir.__truediv__.return_value = mock_dst
+        fixture_dir = mocker.MagicMock(spec=Path)
+        fixture_dir_resolved = mocker.MagicMock(spec=Path)
+        fixture_dir.resolve.return_value = fixture_dir_resolved
+        fixture_dir_resolved.mkdir = mocker.MagicMock()
+        fixture_dir_resolved.__truediv__.return_value = mock_dst
 
         mappings = {
             "CHANGELOG.md": "universal/CHANGELOG.md.j2",
@@ -143,7 +151,7 @@ class TestArrangeTemplates:
 
         arrange_templates(fixture_dir, mappings)
 
-        assert fixture_dir.__truediv__.call_count == 2
+        assert fixture_dir_resolved.__truediv__.call_count == 2
         assert mock_files.call_count == 1
         assert mock_dst.write_text.call_count == 2
 
@@ -152,11 +160,15 @@ class TestArrangeTemplates:
         mock_files = mocker.patch("importlib.resources.files")
         mock_dst = mocker.MagicMock()
         mock_dst.exists.return_value = True  # File exists
+        mock_dst.is_symlink.return_value = False
         mock_dst.parent.mkdir = mocker.MagicMock()
         mock_dst.write_text = mocker.MagicMock()
 
-        fixture_dir = mocker.MagicMock()
-        fixture_dir.__truediv__.return_value = mock_dst
+        fixture_dir = mocker.MagicMock(spec=Path)
+        fixture_dir_resolved = mocker.MagicMock(spec=Path)
+        fixture_dir.resolve.return_value = fixture_dir_resolved
+        fixture_dir_resolved.mkdir = mocker.MagicMock()
+        fixture_dir_resolved.__truediv__.return_value = mock_dst
 
         mappings = {"CHANGELOG.md": "universal/CHANGELOG.md.j2"}
 
@@ -339,7 +351,7 @@ class TestBuildMappings:
     def test_build_mappings_with_source_mappings(self, mocker):
         """Test build_mappings with custom source mappings."""
         config = {
-            "source-mappings": {"README.md": "universal/README.md.j2"},
+            "source-mappings": {"docs/README.md": "universal/README.md.j2"},
         }
         args = mocker.MagicMock()
         args.pypi = False
@@ -350,9 +362,234 @@ class TestBuildMappings:
 
         expected = {
             "templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2",
-            "README.md": "universal/README.md.j2",
+            "docs/README.md": "universal/README.md.j2",
         }
         assert result == expected
+
+
+    def test_build_mappings_invalid_source_mappings_dest_no_slash(self, mocker):
+        """Test E1.8: Reject destination paths without directory separator."""
+        config = {
+            "source-mappings": {"file.txt": "template.j2"},  # No slash!
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError) as exc_info:
+            build_mappings(config, args)
+        
+        error_msg = str(exc_info.value)
+        assert "Invalid destination path format" in error_msg
+        assert "directory level" in error_msg
+
+    def test_build_mappings_invalid_source_mappings_dest_trailing_slash(self, mocker):
+        """Test E1.8: Reject destination paths ending with slash (directories)."""
+        config = {
+            "source-mappings": {"dir/subdir/": "template.j2"},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError) as exc_info:
+            build_mappings(config, args)
+        
+        error_msg = str(exc_info.value)
+        assert "Destination path cannot be a directory" in error_msg or "Cannot be a directory" in error_msg
+
+    def test_build_mappings_invalid_source_mappings_template_path_trailing_slash(self, mocker):
+        """Test E1.8: Reject template paths ending with slash (directories)."""
+        config = {
+            "source-mappings": {"dir/file.txt": "templates/"},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError) as exc_info:
+            build_mappings(config, args)
+        
+        error_msg = str(exc_info.value)
+        assert "Invalid template path format" in error_msg
+        assert "specific files" in error_msg
+
+    def test_build_mappings_empty_dest_path(self, mocker):
+        """Test E1.8: Reject empty destination paths."""
+        config = {
+            "source-mappings": {"": "template.j2"},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError) as exc_info:
+            build_mappings(config, args)
+        
+        error_msg = str(exc_info.value)
+        assert "Invalid destination path format" in error_msg
+
+
+class TestArrangeTemplatesPhase2:
+    """Tests for Phase 2 error handling improvements (E1.7-E1.12)."""
+    
+    def test_arrange_templates_empty_fixture_dir_created(self, mocker, tmp_path):
+        """Test E1.10: arrange_templates creates missing fixture directory."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.MagicMock()
+        mock_template.read_text.return_value = "content"
+        mock_files.return_value = mocker.MagicMock(__truediv__=mocker.MagicMock(return_value=mock_template))
+        
+        fixture_dir = tmp_path / "new_dir"  # Directory doesn't exist yet
+        assert not fixture_dir.exists()
+        
+        mappings = {"dest/file.txt": "template.j2"}
+        arrange_templates(fixture_dir, mappings)
+        
+        # Verify directory was created
+        assert fixture_dir.exists()
+        assert (fixture_dir / "dest" / "file.txt").exists()
+
+    def test_arrange_templates_empty_mappings_error(self, mocker, tmp_path):
+        """Test E1.10: arrange_templates rejects empty mappings."""
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        
+        with pytest.raises(ValueError) as exc_info:
+            arrange_templates(fixture_dir, {})
+        
+        error_msg = str(exc_info.value)
+        assert "No templates to arrange" in error_msg
+
+    def test_arrange_templates_override_false_file_exists(self, mocker, tmp_path):
+        """Test E1.9: override=False prevents file overwrite."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.MagicMock()
+        mock_template.read_text.return_value = "new content"
+        mock_files.return_value = mocker.MagicMock(__truediv__=mocker.MagicMock(return_value=mock_template))
+        
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        
+        # Create an existing file
+        existing_file = fixture_dir / "dest" / "file.txt"
+        existing_file.parent.mkdir(parents=True)
+        existing_file.write_text("old content")
+        
+        mappings = {"dest/file.txt": "template.j2"}
+        
+        with pytest.raises(FileExistsError) as exc_info:
+            arrange_templates(fixture_dir, mappings, override=False)
+        
+        error_msg = str(exc_info.value)
+        assert "exists" in error_msg or "override" in error_msg.lower()
+
+    def test_arrange_templates_override_true_overwrites(self, mocker, tmp_path):
+        """Test E1.9: override=True allows file overwrite."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.MagicMock()
+        mock_template.read_text.return_value = "new content"
+        mock_files.return_value = mocker.MagicMock(__truediv__=mocker.MagicMock(return_value=mock_template))
+        
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        
+        # Create an existing file
+        existing_file = fixture_dir / "dest" / "file.txt"
+        existing_file.parent.mkdir(parents=True)
+        existing_file.write_text("old content")
+        
+        mappings = {"dest/file.txt": "template.j2"}
+        arrange_templates(fixture_dir, mappings, override=True)
+        
+        # Verify content was overwritten
+        assert existing_file.read_text() == "new content"
+
+    def test_arrange_templates_symlink_with_override(self, mocker, tmp_path):
+        """Test E1.11: arrange_templates removes symlinks when override=True."""
+        from pathlib import Path
+        
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.MagicMock()
+        mock_template.read_text.return_value = "new content"
+        mock_files.return_value = mocker.MagicMock(__truediv__=mocker.MagicMock(return_value=mock_template))
+        
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        
+        # Create a symlink
+        target_file = tmp_path / "target.txt"
+        target_file.write_text("target content")
+        
+        symlink_path = fixture_dir / "dest" / "file.txt"
+        symlink_path.parent.mkdir(parents=True)
+        symlink_path.symlink_to(target_file)
+        
+        assert symlink_path.is_symlink()
+        
+        mappings = {"dest/file.txt": "template.j2"}
+        arrange_templates(fixture_dir, mappings, override=True)
+        
+        # Verify symlink was replaced with file content
+        assert not symlink_path.is_symlink()
+        assert symlink_path.read_text() == "new content"
+
+    def test_arrange_templates_symlink_without_override(self, mocker, tmp_path):
+        """Test E1.11: arrange_templates rejects symlinks when override=False."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.MagicMock()
+        mock_template.read_text.return_value = "new content"
+        mock_files.return_value = mocker.MagicMock(__truediv__=mocker.MagicMock(return_value=mock_template))
+        
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        
+        # Create a symlink
+        target_file = tmp_path / "target.txt"
+        target_file.write_text("target content")
+        
+        symlink_path = fixture_dir / "dest" / "file.txt"
+        symlink_path.parent.mkdir(parents=True)
+        symlink_path.symlink_to(target_file)
+        
+        mappings = {"dest/file.txt": "template.j2"}
+        
+        with pytest.raises(FileExistsError) as exc_info:
+            arrange_templates(fixture_dir, mappings, override=False)
+        
+        error_msg = str(exc_info.value)
+        assert "Symlink" in error_msg or "exists" in error_msg
+
+    def test_arrange_templates_invalid_fixture_dir(self):
+        """Test E1.7: arrange_templates rejects invalid fixture directory."""
+        fixture_dir = None  # None path
+        mappings = {"dest/file.txt": "template.j2"}
+        
+        with pytest.raises((ValueError, AttributeError)):
+            arrange_templates(fixture_dir, mappings)
+
+    def test_arrange_templates_unicode_encoding(self, mocker, tmp_path):
+        """Test E1.12: arrange_templates handles UTF-8 content correctly."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.MagicMock()
+        # Template with unicode characters
+        mock_template.read_text.return_value = "# Changelog\n✓ Done\n© Copyright"
+        mock_files.return_value = mocker.MagicMock(__truediv__=mocker.MagicMock(return_value=mock_template))
+        
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        
+        mappings = {"CHANGELOG.md": "template.j2"}
+        arrange_templates(fixture_dir, mappings)
+        
+        # Verify unicode content was written correctly
+        content = (fixture_dir / "CHANGELOG.md").read_text(encoding="utf-8")
+        assert "✓" in content
+        assert "©" in content
 
 
 class TestMain:

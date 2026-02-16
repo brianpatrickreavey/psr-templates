@@ -73,12 +73,13 @@ def load_config(pyproject_path: Path) -> Dict[str, Any]:
     return config
 
 
-def build_mappings(config: Dict[str, Any], args: argparse.Namespace) -> Dict[str, str]:
+def build_mappings(config: Dict[str, Any], args: argparse.Namespace, templates_pkg: Any = None) -> Dict[str, str]:
     """Build the destination: template_path mappings.
     
     Args:
         config: Configuration dictionary from [tool.arranger].
         args: Parsed command-line arguments.
+        templates_pkg: Optional templates package reference (for validation).
         
     Returns:
         Dictionary mapping destination paths to template source paths.
@@ -88,10 +89,13 @@ def build_mappings(config: Dict[str, Any], args: argparse.Namespace) -> Dict[str
     """
     mappings: Dict[str, str] = {}
 
-    # Check for mutually exclusive flags
+    # E1.7: Check for mutually exclusive flags with clear error messages
     flag_count = sum([args.pypi, args.kodi_addon, args.changelog_only])
     if flag_count > 1:
-        raise ValueError("Flags --pypi, --kodi-addon, and --changelog-only are mutually exclusive")
+        raise ValueError(
+            "Flags --pypi, --kodi-addon, and --changelog-only are mutually exclusive.\n"
+            "Please specify only one of these flags."
+        )
 
     # Default to changelog-only if no flags
     if flag_count == 0:
@@ -122,10 +126,36 @@ def build_mappings(config: Dict[str, Any], args: argparse.Namespace) -> Dict[str
     # Track default destinations to prevent overriding
     default_destinations = set(mappings.keys())
 
-    # Add custom mappings from config, but prevent overriding defaults
-    for dest, template_path in config.get("source-mappings", {}).items():
+    # E1.8: Validate source-mappings paths before using them
+    source_mappings = config.get("source-mappings", {})
+    for dest, template_path in source_mappings.items():
+        # Validate destination path format
+        if not dest or "/" not in dest.rstrip("/"):
+            raise ValueError(
+                f"Invalid destination path format: '{dest}'\n"
+                "Destination paths should be file paths with at least one directory level (e.g., 'dir/file.txt')"
+            )
+        
+        if dest.endswith("/"):
+            raise ValueError(
+                f"Destination path cannot be a directory: '{dest}'\n"
+                "Please specify a full file path."
+            )
+        
+        # Validate template path format
+        if not template_path or template_path.endswith("/"):
+            raise ValueError(
+                f"Invalid template path format: '{template_path}'\n"
+                "Template paths should reference specific files, not directories."
+            )
+        
         if dest in default_destinations:
-            raise ValueError(f"Cannot override default mapping for {dest}")
+            raise ValueError(
+                f"Cannot override default mapping for '{dest}'\n"
+                f"Default mappings are reserved for framework templates. "
+                f"Please choose a different destination path."
+            )
+        
         mappings[dest] = template_path
 
     return mappings
@@ -143,8 +173,34 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
     Raises:
         FileNotFoundError: If template file cannot be found or read.
         PermissionError: If cannot write to destination directory.
-        Exception: If template package cannot be imported.
+        ValueError: If fixture directory is invalid or mappings are empty.
+        RuntimeError: If template package cannot be imported.
     """
+    # E1.7: Validate fixture directory
+    if not fixture_dir:
+        raise ValueError("Fixture directory path cannot be empty")
+    
+    try:
+        fixture_dir_abs = fixture_dir.resolve()
+        fixture_dir_abs.mkdir(parents=True, exist_ok=True)
+    except PermissionError as e:
+        raise PermissionError(
+            f"Permission denied creating/accessing fixture directory: {fixture_dir}\n"
+            "Please check that you have write permissions in this location."
+        ) from e
+    except Exception as e:
+        raise ValueError(
+            f"Cannot access fixture directory {fixture_dir}: {str(e)}"
+        ) from e
+    
+    # E1.10: Handle empty mappings
+    if not mappings:
+        raise ValueError(
+            "No templates to arrange. Please configure at least one template source.\n"
+            "Use --changelog-only (default), --kodi-addon, or --pypi flag, "
+            "or add [tool.arranger] configuration in pyproject.toml"
+        )
+    
     try:
         templates = importlib.resources.files(TEMPLATES_PACKAGE)
     except (ModuleNotFoundError, ImportError) as e:
@@ -159,7 +215,7 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
     
     for dest, template_path in mappings.items():
         try:
-            # E1.1: Validate template file exists before reading
+            # Validate template file exists before reading
             template_file = templates / template_path
             try:
                 content = template_file.read_text(encoding="utf-8")
@@ -175,7 +231,21 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
                 ) from e
             
             # Place raw template content
-            dst = fixture_dir / dest
+            dst = fixture_dir_abs / dest
+            
+            # E1.11: Handle symlinks - resolve them but don't follow
+            if dst.exists() and dst.is_symlink():
+                if not override:
+                    raise FileExistsError(
+                        f"Symlink exists at {dst}, use --override to replace it"
+                    )
+                try:
+                    dst.unlink()
+                except PermissionError as e:
+                    raise PermissionError(
+                        f"Permission denied removing symlink: {dst}"
+                    ) from e
+            
             try:
                 dst.parent.mkdir(parents=True, exist_ok=True)
             except PermissionError as e:
@@ -184,15 +254,25 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
                     "Please check that you have write permissions in this directory."
                 ) from e
             
+            # E1.9: Validate override behavior
             if dst.exists() and not override:
-                raise FileExistsError(f"File {dst} exists, use --override to overwrite")
+                raise FileExistsError(
+                    f"File exists at {dst}\n"
+                    "Use --override flag to overwrite existing files."
+                )
             
             try:
+                # Explicit UTF-8 encoding (E1.12)
                 dst.write_text(content, encoding="utf-8")
             except PermissionError as e:
                 raise PermissionError(
                     f"Permission denied writing to: {dst}\n"
                     "Please check that you have write permissions in this directory."
+                ) from e
+            except UnicodeEncodeError as e:
+                raise ValueError(
+                    f"File encoding error while writing {dst}: {str(e)}\n"
+                    "Ensure template content is valid UTF-8."
                 ) from e
             
             print(f"Placed {template_path} to {dst}")
@@ -204,7 +284,13 @@ def main() -> None:
     """Main entry point for the arranger CLI."""
     parser = argparse.ArgumentParser(
         description="Build template structure from PSR templates.",
-        epilog="Example: psr-build-template-structure --kodi-addon"
+        epilog=(
+            "Examples:\n"
+            "  psr-build-template-structure --kodi-addon\n"
+            "  psr-build-template-structure --changelog-only\n"
+            "  psr-build-template-structure --override (to overwrite existing files)"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
         "--pypi", action="store_true", help="Include default PyPI structure"
@@ -216,7 +302,7 @@ def main() -> None:
         "--changelog-only", action="store_true", help="Only create changelog"
     )
     parser.add_argument(
-        "--override", action="store_true", help="Override existing files"
+        "--override", action="store_true", help="Override existing files (default: False)"
     )
     args = parser.parse_args()
 
@@ -230,6 +316,9 @@ def main() -> None:
         print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
     except ValueError as e:
+        print(f"Error: {str(e)}", file=sys.stderr)
+        sys.exit(1)
+    except FileExistsError as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
     except (PermissionError, RuntimeError) as e:
