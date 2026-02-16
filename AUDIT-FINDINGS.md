@@ -280,6 +280,25 @@
 
 ---
 
+### Phase 3 Progress
+
+| Task | Status | Completed | Notes |
+|------|--------|-----------|-------|
+| T2.1: Complete type hints (all functions) | ✅ | 2026-02-16 | All functions in run.py typed (Dict[str, Any], Optional, etc.) |
+| T2.2: mypy configuration | ✅ | 2026-02-16 | Strict mode: disallow_untyped_defs, disallow_any_generics, strict_equality |
+| T2.3: Type hints in helper code | ✅ | 2026-02-16 | Variable type annotations (templates: Any, content: str, etc.) |
+| T2.4: Return type specifications | ✅ | 2026-02-16 | All functions have explicit return types (-> None, -> Dict[str, str]) |
+| T2.5: Imports typed (from __future__) | ✅ | 2026-02-16 | Added `from __future__ import annotations` |
+| T2.6: Test type hints | ⚠️ Partial | 2026-02-16 | Tests use proper mocking, type hints not enforced in test suite |
+| Linting targets (flake8/black/mypy) | ✅ | 2026-02-16 | Individual make targets: make flake8, make black-check, make mypy |
+| Config for 120 char line length | ✅ | 2026-02-16 | setup.cfg + pyproject.toml configured for flake8 and black |
+
+**Phase 3 Status: COMPLETE ✅**
+
+**Commit:** 1ce7141 - "feat: Phase 3 - comprehensive type hints and mypy integration"
+
+---
+
 ## Key Decisions Made
 
 1. **PyPI support:** Keep stubs, not production-ready yet
