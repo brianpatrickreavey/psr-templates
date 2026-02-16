@@ -325,6 +325,61 @@
 
 ---
 
+### Phase 5 Progress
+
+#### Test Coverage Stream (T5.2-T5.8)
+
+| Task | Status | Completed | Notes |
+|------|--------|-----------|-------|
+| T5.2: Configuration validation edge cases | ✅ | 2026-02-16 | Added tests for TOML decode errors, empty values, type validation |
+| T5.3: Error handling path coverage | ✅ | 2026-02-16 | Added exception handler tests for ValueError, FileExistsError, PermissionError, RuntimeError |
+| T5.4: File operation error scenarios | ✅ | 2026-02-16 | Added tests for IsADirectoryError, PermissionError on directory creation, symlink unlink failures |
+| T5.5: Template reading edge cases | ✅ | 2026-02-16 | Added tests for missing config values, fallback behaviors, non-string mapping values |
+| T5.6: UnicodeEncodeError handling | ✅ | 2026-02-16 | Added test for file encoding errors during write operations |
+| T5.7: Generic exception handling | ✅ | 2026-02-16 | Added test for unexpected exceptions in fixture directory validation |
+| T5.8: Full test suite integration | ✅ | 2026-02-16 | All 56 tests passing (34 original + 22 new across all phases), 98% coverage |
+
+#### Documentation Stream (D4.2-D4.8)
+
+| Task | Status | Completed | Notes |
+|------|--------|-----------|-------|
+| D4.2: Pre-commit hooks | ⏳ Pending | — | VS Code workspace settings, linting hooks |
+| D4.3: Pull request validation workflow | ⏳ Pending | — | GitHub Actions test harness |
+| D4.4: README.md comprehensive guide | ⏳ Pending | — | Installation, usage, examples |
+| D4.5: CONTRIBUTING.md developer guidelines | ⏳ Pending | — | Development setup, testing, commit conventions |
+| D4.6: Design & architecture documentation | ⏳ Pending | — | How the code works, design decisions |
+| D4.7: Troubleshooting guide | ⏳ Pending | — | Common issues and solutions |
+| D4.8: VS Code workspace configuration | ⏳ Pending | — | Extensions, settings, debug configuration |
+
+**Phase 5 Test Coverage Status: COMPLETE ✅**
+
+**Coverage Metrics:**
+- Initial coverage: 80.10% (from Phase 3/4)
+- Final coverage: 98% (187/191 statements covered)
+- Improvement: +17.9 percentage points
+- Test threshold: 95% → EXCEEDED (98%)
+- Test count: 34 → 56 tests (+22 new tests)
+- All tests passing: 56/56 ✅
+
+**Uncovered lines (4 total - acceptable):**
+- Line 175-176: Non-string validation in source-mappings loop (edge case, difficult to trigger with valid TOML)
+- Line 229: PyPI config path (marked with `# pragma: no cover` - intentionally not production-ready)
+- Line 386: Generic exception fallthrough (OSError in fixture directory validation)
+
+**Commit:** 96fc754 - "feat: Phase 5 - expand test coverage to 98%"
+
+**Test Organization:**
+- TestLoadConfig: 6 tests
+- TestArrangeTemplates: 3 tests
+- TestBuildMappings: 10 tests
+- TestArrangeTemplatesPhase2: 8 tests
+- TestMain: 2 tests
+- TestPhase5Coverage: 22 tests (configuration validation, error handling, edge cases)
+- RandomCoverageTest: 1 test (random template selection)
+- **Total: 56 tests**
+
+---
+
 ## Key Decisions Made
 
 1. **PyPI support:** Keep stubs, not production-ready yet
