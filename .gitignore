@@ -9,3 +9,4 @@ dist
 *.pyo
 *.pyd
 *.log
+.coverage
