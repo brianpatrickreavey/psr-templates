@@ -1,4 +1,4 @@
-.PHONY: test-unit test-integration-pre test-integration-post test-full lint format install-dev run-test-harness clean get-test-results
+.PHONY: test-unit test-integration-pre test-integration-post test-full lint format install-dev run-test-harness clean get-test-results coverage-report validate watch-tests build mypy
 
 # Clean build artifacts, caches, and generated files
 clean:
@@ -11,7 +11,7 @@ clean:
 
 # Unit tests with coverage (95% threshold for arranger core logic)
 test-unit:
-	pytest tests/unit/ --cov=arranger --cov-report=term-missing --cov-fail-under=94
+	pytest tests/unit/ --cov=arranger --cov-report=term-missing --cov-fail-under=95
 
 # Pre-PSR integration tests
 test-integration-pre:
@@ -85,3 +85,25 @@ get-test-results:
 	echo "  v0.1.0/CHANGELOG.md - Release 0.1.0 only" && \
 	echo "  v0.2.0/CHANGELOG.md - Releases 0.1.0 + 0.2.0" && \
 	echo "  v1.0.0/CHANGELOG.md - All 3 releases cumulative"
+
+# Generate HTML coverage report
+coverage-report:
+	pytest tests/unit/ --cov=arranger --cov-report=html && \
+	echo "✓ Coverage report generated in htmlcov/index.html"
+
+# Run all validation (lint + unit tests)
+validate: lint test-unit
+	@echo "✓ All validation checks passed"
+
+# Watch tests on file changes (requires pytest-watch)
+watch-tests:
+	@command -v ptw > /dev/null || (echo "Installing pytest-watch..." && pip install pytest-watch)
+	ptw tests/unit/ -- --cov=arranger
+
+# Build distribution package
+build: clean
+	python -m build
+
+# Run type checking with mypy (once types added in phase 3)
+mypy:
+	mypy src/arranger tests --strict || echo "Note: mypy checks will be enforced in Phase 3"

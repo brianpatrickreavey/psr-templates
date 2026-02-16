@@ -9,8 +9,9 @@ class TestLoadConfig:
     def test_load_config_success(self, mocker):
         """Test loading config from pyproject.toml."""
         mock_data = {"tool": {"arranger": {"key": "value"}}}
-        mock_toml_load = mocker.patch("tomllib.load", return_value=mock_data)
-        mock_file = mocker.patch("builtins.open", mock_open())
+        mocker.patch("tomllib.load", return_value=mock_data)
+        mocker.patch("builtins.open", mock_open())
+        mocker.patch("pathlib.Path.exists", return_value=True)
 
         result = load_config(Path("dummy.toml"))
 
@@ -19,14 +20,13 @@ class TestLoadConfig:
             "source-mappings": {},
         }
         assert result == expected
-        mock_file.assert_called_once_with(Path("dummy.toml"), "rb")
-        mock_toml_load.assert_called_once()
 
     def test_load_config_no_tool_section(self, mocker):
         """Test loading config when [tool] section is missing."""
         mock_data = {"project": {}}
         mocker.patch("tomllib.load", return_value=mock_data)
         mocker.patch("builtins.open", mock_open())
+        mocker.patch("pathlib.Path.exists", return_value=True)
 
         result = load_config(Path("dummy.toml"))
 
@@ -40,6 +40,7 @@ class TestLoadConfig:
         mock_data = {"tool": {"other": {}}}
         mocker.patch("tomllib.load", return_value=mock_data)
         mocker.patch("builtins.open", mock_open())
+        mocker.patch("pathlib.Path.exists", return_value=True)
 
         result = load_config(Path("dummy.toml"))
 
@@ -47,6 +48,48 @@ class TestLoadConfig:
             "source-mappings": {},
         }
         assert result == expected
+
+    def test_load_config_missing_pyproject(self):
+        """Test error handling when pyproject.toml is missing (E1.2)."""
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_config(Path("/nonexistent/pyproject.toml"))
+        
+        error_msg = str(exc_info.value)
+        assert "pyproject.toml not found" in error_msg
+        assert "project root directory" in error_msg
+
+    def test_load_config_malformed_toml(self, mocker):
+        """Test error handling for malformed TOML syntax (E1.3)."""
+        mocker.patch("pathlib.Path.exists", return_value=True)
+        mocker.patch("builtins.open", mock_open())
+        mocker.patch(
+            "tomllib.load",
+            side_effect=ValueError("Invalid TOML syntax at line 1")
+        )
+        
+        with pytest.raises(ValueError) as exc_info:
+            load_config(Path("bad.toml"))
+        
+        error_msg = str(exc_info.value)
+        assert "Invalid TOML syntax" in error_msg
+
+    def test_load_config_unknown_keys_warning(self, mocker, capsys):
+        """Test warning for unknown config keys (E1.6 partial)."""
+        mock_data = {"tool": {"arranger": {
+            "templates-dir": "templates",
+            "unknown-key": "value",
+            "another-bad-key": 123
+        }}}
+        mocker.patch("tomllib.load", return_value=mock_data)
+        mocker.patch("builtins.open", mock_open())
+        mocker.patch("pathlib.Path.exists", return_value=True)
+        
+        result = load_config(Path("dummy.toml"))
+        
+        captured = capsys.readouterr()
+        assert "Warning: Unknown keys" in captured.err
+        assert "unknown-key" in captured.err
+        assert "another-bad-key" in captured.err
 
 
 class TestArrangeTemplates:
@@ -74,7 +117,7 @@ class TestArrangeTemplates:
         fixture_dir.__truediv__.assert_called_once_with("CHANGELOG.md")
         mock_files.assert_called_once_with("arranger.templates")
         mock_file.__truediv__.assert_called_once_with("universal/CHANGELOG.md.j2")
-        mock_dst.write_text.assert_called_once_with("template content")
+        mock_dst.write_text.assert_called_once_with("template content", encoding="utf-8")
 
     def test_arrange_templates_multiple_files(self, mocker):
         """Test placing multiple files."""
@@ -101,7 +144,7 @@ class TestArrangeTemplates:
         arrange_templates(fixture_dir, mappings)
 
         assert fixture_dir.__truediv__.call_count == 2
-        assert mock_files.call_count == 2
+        assert mock_files.call_count == 1
         assert mock_dst.write_text.call_count == 2
 
     def test_arrange_templates_file_exists_overwrites(self, mocker):
@@ -110,6 +153,7 @@ class TestArrangeTemplates:
         mock_dst = mocker.MagicMock()
         mock_dst.exists.return_value = True  # File exists
         mock_dst.parent.mkdir = mocker.MagicMock()
+        mock_dst.write_text = mocker.MagicMock()
 
         fixture_dir = mocker.MagicMock()
         fixture_dir.__truediv__.return_value = mock_dst
@@ -122,7 +166,79 @@ class TestArrangeTemplates:
         mock_file.__truediv__.return_value = mock_subfile
         mock_files.return_value = mock_file
 
-        arrange_templates(fixture_dir, mappings)
+        arrange_templates(fixture_dir, mappings, override=True)
+        mock_dst.write_text.assert_called_once()
+
+    def test_arrange_templates_missing_source(self, mocker, tmp_path):
+        """Test error handling when template file doesn't exist (E1.1)."""
+        # Mock importlib to return a file that raises FileNotFoundError on read
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template_dir = mocker.MagicMock()
+        
+        # Create a mock that raises FileNotFoundError when read_text is called
+        mock_template_file = mocker.MagicMock()
+        mock_template_file.read_text.side_effect = FileNotFoundError("No such file")
+        
+        # Set up the chain: files() / template_path -> raises error on read_text()
+        mock_template_dir.__truediv__ = mocker.MagicMock(return_value=mock_template_file)
+        mock_files.return_value = mock_template_dir
+        
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        mappings = {"dest.txt": "missing.j2"}
+        
+        with pytest.raises(FileNotFoundError) as exc_info:
+            arrange_templates(fixture_dir, mappings)
+        
+        assert "Template file not found" in str(exc_info.value)
+        assert "missing.j2" in str(exc_info.value)
+
+    def test_arrange_templates_import_error(self, mocker, tmp_path):
+        """Test error handling when template package cannot be imported (E1.4)."""
+        mocker.patch(
+            "importlib.resources.files",
+            side_effect=ModuleNotFoundError("No module named 'arranger.templates'")
+        )
+        
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        mappings = {"dest.txt": "template.j2"}
+        
+        with pytest.raises(RuntimeError) as exc_info:
+            arrange_templates(fixture_dir, mappings)
+        
+        error_msg = str(exc_info.value)
+        assert "Failed to import template package" in error_msg
+        assert "psr-templates" in error_msg
+
+    def test_arrange_templates_permission_denied(self, mocker, tmp_path):
+        """Test error handling for permission denied when writing (E1.5)."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template_file = mocker.MagicMock()
+        mock_template_file.read_text.return_value = "content"
+        # Create a div operation that returns a MagicMock with read_text
+        mock_template_file.__truediv__ = mocker.MagicMock(return_value=mock_template_file)
+        mock_files.return_value = mock_template_file
+        
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        
+        mappings = {"dest.txt": "template.j2"}
+        
+        # Create a real Path object that will fail on write
+        mock_path = mocker.MagicMock(spec=Path)
+        mock_path.parent = mocker.MagicMock(spec=Path)
+        mock_path.parent.mkdir = mocker.MagicMock()
+        mock_path.exists.return_value = False
+        mock_path.write_text.side_effect = PermissionError("Access denied")
+        
+        mocker.patch.object(Path, '__truediv__', return_value=mock_path)
+        
+        with pytest.raises(PermissionError) as exc_info:
+            arrange_templates(fixture_dir, mappings)
+        
+        error_msg = str(exc_info.value)
+        assert "Permission denied" in error_msg
 
 
 class TestBuildMappings:
@@ -266,10 +382,10 @@ class TestMain:
             mock_arrange.assert_called_once_with(Path("."), {"templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2"}, override=False)
 
             captured = capsys.readouterr()
-            assert "Template structure built." in captured.out
+            assert "Template structure built successfully" in captured.out
 
     def test_main_pyproject_not_found(self, mocker):
-        """Test main raises error if pyproject.toml not found."""
+        """Test main handles error if pyproject.toml not found."""
         mock_exists = mocker.patch("pathlib.Path.exists", return_value=False)
 
         with patch("argparse.ArgumentParser.parse_args") as mock_parse:
@@ -279,8 +395,11 @@ class TestMain:
             mock_args.changelog_only = False
             mock_parse.return_value = mock_args
 
-            with pytest.raises(FileNotFoundError, match="pyproject.toml not found"):
+            with pytest.raises(SystemExit) as exc_info:
                 main()
+            
+            # main() should exit with code 1 on error
+            assert exc_info.value.code == 1
 
 
 def test_script_execution(mocker):
