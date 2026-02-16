@@ -594,3 +594,362 @@ def test_script_execution(mocker):
     mocker.patch("arranger.run.main")
     # For coverage, since main is tested
     pass
+
+
+class TestPhase5Coverage:
+    """Additional tests to improve code coverage for Phase 5 (T5.2)."""
+
+    def test_load_config_toml_decode_error(self, mocker):
+        """Test error handling for TOMLDecodeError (E1.3 specific decoder error)."""
+        mocker.patch("pathlib.Path.exists", return_value=True)
+        mocker.patch("builtins.open", mock_open())
+
+        # Create a mock exception that looks like TOMLDecodeError
+        import tomllib
+
+        original_error = tomllib.TOMLDecodeError("error msg", "doc", 0)
+        mocker.patch("tomllib.load", side_effect=original_error)
+
+        with pytest.raises(ValueError, match="Invalid TOML"):
+            load_config(Path("bad.toml"))
+
+    def test_load_config_generic_read_error(self, mocker):
+        """Test error handling for general file read errors."""
+        mocker.patch("pathlib.Path.exists", return_value=True)
+        mocker.patch("builtins.open", side_effect=IOError("Permission denied"))
+
+        with pytest.raises(ValueError, match="Failed to read"):
+            load_config(Path("bad.toml"))
+
+    def test_config_validation_invalid_templates_dir_type(self, mocker):
+        """Test config validation rejects non-string templates-dir."""
+        config = {
+            "templates-dir": 123,  # Should be string
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError, match="Invalid type"):
+            build_mappings(config, args)
+
+    def test_config_validation_invalid_kodi_project_type(self, mocker):
+        """Test config validation rejects non-string kodi-project-name."""
+        config = {
+            "kodi-project-name": ["list", "value"],  # Should be string
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError, match="Invalid type"):
+            build_mappings(config, args)
+
+    def test_config_validation_empty_templates_dir(self, mocker):
+        """Test config validation rejects empty templates-dir."""
+        config = {
+            "templates-dir": "",  # Empty string
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError, match="cannot be an empty string"):
+            build_mappings(config, args)
+
+    def test_config_validation_templates_dir_with_path_separator(self, mocker):
+        """Test config validation rejects templates-dir containing path separators."""
+        config = {
+            "templates-dir": "path/to/templates",  # Has path separator
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError, match="simple directory name"):
+            build_mappings(config, args)
+
+    def test_config_validation_empty_kodi_project_name(self, mocker):
+        """Test config validation rejects empty kodi-project-name."""
+        config = {
+            "kodi-project-name": "",  # Empty string
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = True
+        args.changelog_only = False
+
+        with pytest.raises(ValueError, match="cannot be an empty string"):
+            build_mappings(config, args)
+
+    def test_config_validation_invalid_source_mappings_type(self, mocker):
+        """Test config validation rejects non-dict source-mappings."""
+        config = {
+            "source-mappings": "not a dict",  # Should be dict
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError, match="Invalid type|expected dict"):
+            build_mappings(config, args)
+
+    def test_config_validation_source_mappings_non_string_keys(self, mocker):
+        """Test config validation rejects non-string keys in source-mappings."""
+        config = {
+            "source-mappings": {123: "template.j2"},  # Key should be string
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError, match="must be strings"):
+            build_mappings(config, args)
+
+    def test_build_mappings_kodi_without_project_name(self, mocker):
+        """Test build_mappings with kodi flag but no project name (uses fallback)."""
+        config = {
+            "use-default-kodi-addon-structure": True,
+            # No kodi-project-name
+            "source-mappings": {},
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = True
+        args.changelog_only = False
+
+        result = build_mappings(config, args)
+
+        # Should use fallback to root templates
+        expected = {
+            "templates/addon.xml.j2": "kodi-addons/addon.xml.j2",
+            "templates/CHANGELOG.md.j2": "universal/CHANGELOG.md.j2",
+        }
+        assert result == expected
+
+    def test_arrange_templates_template_is_directory_error(self, mocker, tmp_path):
+        """Test error when template path points to directory (IsADirectoryError)."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.MagicMock()
+        # Raise IsADirectoryError when read_text is called
+        mock_template.read_text.side_effect = IsADirectoryError("Is a directory")
+
+        mock_root = mocker.MagicMock()
+        mock_root.__truediv__.return_value = mock_template
+        mock_files.return_value = mock_root
+
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+        mappings = {"dest.txt": "template_dir"}
+
+        with pytest.raises(ValueError, match="points to a directory"):
+            arrange_templates(fixture_dir, mappings)
+
+    def test_arrange_templates_permission_denied_on_dir_create(self, mocker, tmp_path):
+        """Test permission error when creating destination directories."""
+        mock_files = mocker.patch("importlib.resources.files")
+        mock_template = mocker.MagicMock()
+        mock_template.read_text.return_value = "content"
+
+        mock_root = mocker.MagicMock()
+        mock_root.__truediv__.return_value = mock_template
+        mock_files.return_value = mock_root
+
+        fixture_dir = tmp_path / "fixture"
+        fixture_dir.mkdir()
+
+        # Mock the destination path to fail on parent.mkdir()
+        mock_dst = mocker.MagicMock(spec=Path)
+        mock_dst.exists.return_value = False
+        mock_dst.is_symlink.return_value = False
+        mock_dst.parent.mkdir.side_effect = PermissionError("Access denied")
+
+        mocker.patch.object(Path, "__truediv__", return_value=mock_dst)
+
+        mappings = {"dest.txt": "template.j2"}
+
+        with pytest.raises(PermissionError, match="Permission denied"):
+            arrange_templates(fixture_dir, mappings)
+
+    def test_main_value_error_handling(self, mocker):
+        """Test main() handles ValueError from arrangement."""
+        mocker.patch("arranger.run.load_config", return_value={"source-mappings": {}})
+        mocker.patch(
+            "arranger.run.build_mappings",
+            side_effect=ValueError("Invalid configuration"),
+        )
+
+        with patch("argparse.ArgumentParser.parse_args") as mock_parse:
+            mock_args = MagicMock()
+            mock_args.pypi = False
+            mock_args.kodi_addon = False
+            mock_args.changelog_only = False
+            mock_parse.return_value = mock_args
+
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+            assert exc_info.value.code == 1
+
+    def test_main_file_exists_error_handling(self, mocker):
+        """Test main() handles FileExistsError."""
+        mocker.patch("arranger.run.load_config", return_value={"source-mappings": {}})
+        mocker.patch(
+            "arranger.run.build_mappings",
+            return_value={"dest.txt": "template.j2"},
+        )
+        mocker.patch(
+            "arranger.run.arrange_templates",
+            side_effect=FileExistsError("File exists, use --override"),
+        )
+
+        with patch("argparse.ArgumentParser.parse_args") as mock_parse:
+            mock_args = MagicMock()
+            mock_args.pypi = False
+            mock_args.kodi_addon = False
+            mock_args.changelog_only = False
+            mock_args.override = False
+            mock_parse.return_value = mock_args
+
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+            assert exc_info.value.code == 1
+
+    def test_main_permission_error_handling(self, mocker):
+        """Test main() handles PermissionError."""
+        mocker.patch("arranger.run.load_config", return_value={"source-mappings": {}})
+        mocker.patch(
+            "arranger.run.build_mappings",
+            return_value={"dest.txt": "template.j2"},
+        )
+        mocker.patch(
+            "arranger.run.arrange_templates",
+            side_effect=PermissionError("Access denied"),
+        )
+
+        with patch("argparse.ArgumentParser.parse_args") as mock_parse:
+            mock_args = MagicMock()
+            mock_args.pypi = False
+            mock_args.kodi_addon = False
+            mock_args.changelog_only = False
+            mock_args.override = False
+            mock_parse.return_value = mock_args
+
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+            assert exc_info.value.code == 1
+
+    def test_main_runtime_error_handling(self, mocker):
+        """Test main() handles RuntimeError (import failures)."""
+        mocker.patch("arranger.run.load_config", return_value={"source-mappings": {}})
+        mocker.patch(
+            "arranger.run.build_mappings",
+            return_value={"dest.txt": "template.j2"},
+        )
+        mocker.patch(
+            "arranger.run.arrange_templates",
+            side_effect=RuntimeError("Cannot import templates package"),
+        )
+
+        with patch("argparse.ArgumentParser.parse_args") as mock_parse:
+            mock_args = MagicMock()
+            mock_args.pypi = False
+            mock_args.kodi_addon = False
+            mock_args.changelog_only = False
+            mock_args.override = False
+            mock_parse.return_value = mock_args
+
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+            assert exc_info.value.code == 1
+
+    def test_config_validation_source_mappings_non_string_dest(self, mocker):
+        """Test config validation rejects non-string destination in source-mappings."""
+        config = {
+            "source-mappings": {123: "template.j2"},  # Int key instead of string
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError, match="must be strings"):
+            build_mappings(config, args)
+
+    def test_config_validation_source_mappings_non_string_value(self, mocker):
+        """Test config validation rejects non-string template path in source-mappings."""
+        config = {
+            "source-mappings": {"dir/file.txt": 456},  # Number value instead of string
+        }
+        args = mocker.MagicMock()
+        args.pypi = False
+        args.kodi_addon = False
+        args.changelog_only = True
+
+        with pytest.raises(ValueError, match="must be strings"):
+            build_mappings(config, args)
+
+    def test_validate_fixture_dir_generic_exception(self, mocker):
+        """Test _validate_fixture_directory handles generic exceptions."""
+        from arranger.run import _validate_fixture_directory
+
+        mock_fixture_dir = mocker.MagicMock()
+        mock_fixture_dir.resolve.side_effect = OSError("Generic OS error")
+
+        with pytest.raises(ValueError, match="Cannot access fixture directory"):
+            _validate_fixture_directory(mock_fixture_dir)
+
+    def test_handle_existing_destination_symlink_permission_error(self, mocker):
+        """Test _handle_existing_destination permission error on symlink unlink."""
+        from arranger.run import _handle_existing_destination
+
+        dst = mocker.MagicMock()
+        dst.is_symlink.return_value = True
+        dst.unlink.side_effect = PermissionError("Permission denied")
+
+        with pytest.raises(PermissionError, match="Permission denied removing symlink"):
+            _handle_existing_destination(dst, override=True)
+
+    def test_write_destination_file_unicode_error(self, mocker):
+        """Test _write_destination_file handles UnicodeEncodeError."""
+        from arranger.run import _write_destination_file
+
+        dst = mocker.MagicMock()
+        dst.write_text.side_effect = UnicodeEncodeError("utf-8", "test", 0, 1, "test error")
+
+        with pytest.raises(ValueError, match="File encoding error"):
+            _write_destination_file(dst, "problematic content")
+
+    def test_main_unexpected_exception_handling(self, mocker):
+        """Test main() handles unexpected exceptions."""
+        mocker.patch("arranger.run.load_config", return_value={"source-mappings": {}})
+        mocker.patch(
+            "arranger.run.build_mappings",
+            side_effect=KeyError("Unexpected key error"),
+        )
+
+        with patch("argparse.ArgumentParser.parse_args") as mock_parse:
+            mock_args = MagicMock()
+            mock_args.pypi = False
+            mock_args.kodi_addon = False
+            mock_args.changelog_only = False
+            mock_parse.return_value = mock_args
+
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+            assert exc_info.value.code == 1
