@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional, cast
 import tomllib
 import importlib.resources
-from importlib.resources import files
 import sys
 
 # Module constants (C3.6)
@@ -31,13 +30,13 @@ VALID_CONFIG_KEYS = {
 
 def load_config(pyproject_path: Path) -> Dict[str, Any]:
     """Load [tool.arranger] from pyproject.toml.
-    
+
     Args:
         pyproject_path: Path to pyproject.toml file.
-        
+
     Returns:
         Dictionary with arranger config, defaults included.
-        
+
     Raises:
         FileNotFoundError: If pyproject_path does not exist.
         ValueError: If TOML is malformed.
@@ -47,43 +46,47 @@ def load_config(pyproject_path: Path) -> Dict[str, Any]:
             f"pyproject.toml not found at {pyproject_path.absolute()}\n"
             "Please ensure you run this command from the project root directory."
         )
-    
+
     try:
         with open(pyproject_path, "rb") as f:
-            data = tomllib.load(f)
+            data: Dict[str, Any] = tomllib.load(f)
     except tomllib.TOMLDecodeError as e:
         raise ValueError(
-            f"Invalid TOML syntax in {pyproject_path}: {str(e)}\n"
-            "Please check the file for syntax errors."
+            f"Invalid TOML syntax in {pyproject_path}: {str(e)}\n" "Please check the file for syntax errors."
         ) from e
     except Exception as e:
-        raise ValueError(
-            f"Failed to read {pyproject_path}: {str(e)}"
-        ) from e
-    
-    config = data.get("tool", {}).get("arranger", {})
+        raise ValueError(f"Failed to read {pyproject_path}: {str(e)}") from e
+
+    config: Dict[str, Any] = cast(Dict[str, Any], data.get("tool", {}).get("arranger", {}))
     # Set defaults
     config.setdefault("source-mappings", {})
-    
+
     # Warn about unknown config keys (E1.6 - partial)
     unknown_keys = set(config.keys()) - VALID_CONFIG_KEYS
     if unknown_keys:
-        print(f"Warning: Unknown keys in [tool.arranger]: {', '.join(sorted(unknown_keys))}", file=sys.stderr)
-    
+        print(
+            f"Warning: Unknown keys in [tool.arranger]: {', '.join(sorted(unknown_keys))}",
+            file=sys.stderr,
+        )
+
     return config
 
 
-def build_mappings(config: Dict[str, Any], args: argparse.Namespace, templates_pkg: Any = None) -> Dict[str, str]:
+def build_mappings(
+    config: Dict[str, Any],
+    args: argparse.Namespace,
+    templates_pkg: Optional[Any] = None,
+) -> Dict[str, str]:
     """Build the destination: template_path mappings.
-    
+
     Args:
         config: Configuration dictionary from [tool.arranger].
         args: Parsed command-line arguments.
         templates_pkg: Optional templates package reference (for validation).
-        
+
     Returns:
         Dictionary mapping destination paths to template source paths.
-        
+
     Raises:
         ValueError: If flags are mutually exclusive or config is invalid.
     """
@@ -135,27 +138,24 @@ def build_mappings(config: Dict[str, Any], args: argparse.Namespace, templates_p
                 f"Invalid destination path format: '{dest}'\n"
                 "Destination paths should be file paths with at least one directory level (e.g., 'dir/file.txt')"
             )
-        
+
         if dest.endswith("/"):
-            raise ValueError(
-                f"Destination path cannot be a directory: '{dest}'\n"
-                "Please specify a full file path."
-            )
-        
+            raise ValueError(f"Destination path cannot be a directory: '{dest}'\n" "Please specify a full file path.")
+
         # Validate template path format
         if not template_path or template_path.endswith("/"):
             raise ValueError(
                 f"Invalid template path format: '{template_path}'\n"
                 "Template paths should reference specific files, not directories."
             )
-        
+
         if dest in default_destinations:
             raise ValueError(
                 f"Cannot override default mapping for '{dest}'\n"
                 f"Default mappings are reserved for framework templates. "
                 f"Please choose a different destination path."
             )
-        
+
         mappings[dest] = template_path
 
     return mappings
@@ -169,7 +169,7 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
         fixture_dir: Path to the fixture directory
         mappings: Dict mapping destination paths to template paths
         override: Whether to overwrite existing files (default: True)
-        
+
     Raises:
         FileNotFoundError: If template file cannot be found or read.
         PermissionError: If cannot write to destination directory.
@@ -179,7 +179,7 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
     # E1.7: Validate fixture directory
     if not fixture_dir:
         raise ValueError("Fixture directory path cannot be empty")
-    
+
     try:
         fixture_dir_abs = fixture_dir.resolve()
         fixture_dir_abs.mkdir(parents=True, exist_ok=True)
@@ -189,10 +189,8 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
             "Please check that you have write permissions in this location."
         ) from e
     except Exception as e:
-        raise ValueError(
-            f"Cannot access fixture directory {fixture_dir}: {str(e)}"
-        ) from e
-    
+        raise ValueError(f"Cannot access fixture directory {fixture_dir}: {str(e)}") from e
+
     # E1.10: Handle empty mappings
     if not mappings:
         raise ValueError(
@@ -200,9 +198,9 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
             "Use --changelog-only (default), --kodi-addon, or --pypi flag, "
             "or add [tool.arranger] configuration in pyproject.toml"
         )
-    
+
     try:
-        templates = importlib.resources.files(TEMPLATES_PACKAGE)
+        templates: Any = importlib.resources.files(TEMPLATES_PACKAGE)
     except (ModuleNotFoundError, ImportError) as e:
         raise RuntimeError(
             f"Failed to import template package '{TEMPLATES_PACKAGE}':\n"
@@ -212,13 +210,13 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
             "or for development:\n"
             "  pip install -e ."
         ) from e
-    
+
     for dest, template_path in mappings.items():
         try:
             # Validate template file exists before reading
-            template_file = templates / template_path
+            template_file: Any = templates / template_path
             try:
-                content = template_file.read_text(encoding="utf-8")
+                content: str = template_file.read_text(encoding="utf-8")
             except FileNotFoundError as e:
                 raise FileNotFoundError(
                     f"Template file not found: {template_path}\n"
@@ -226,26 +224,20 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
                     f"Available templates should be in: {TEMPLATES_PACKAGE}"
                 ) from e
             except IsADirectoryError as e:
-                raise ValueError(
-                    f"Template path points to a directory, not a file: {template_path}"
-                ) from e
-            
+                raise ValueError(f"Template path points to a directory, not a file: {template_path}") from e
+
             # Place raw template content
             dst = fixture_dir_abs / dest
-            
+
             # E1.11: Handle symlinks - resolve them but don't follow
             if dst.exists() and dst.is_symlink():
                 if not override:
-                    raise FileExistsError(
-                        f"Symlink exists at {dst}, use --override to replace it"
-                    )
+                    raise FileExistsError(f"Symlink exists at {dst}, use --override to replace it")
                 try:
                     dst.unlink()
                 except PermissionError as e:
-                    raise PermissionError(
-                        f"Permission denied removing symlink: {dst}"
-                    ) from e
-            
+                    raise PermissionError(f"Permission denied removing symlink: {dst}") from e
+
             try:
                 dst.parent.mkdir(parents=True, exist_ok=True)
             except PermissionError as e:
@@ -253,14 +245,11 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
                     f"Permission denied creating directory: {dst.parent}\n"
                     "Please check that you have write permissions in this directory."
                 ) from e
-            
+
             # E1.9: Validate override behavior
             if dst.exists() and not override:
-                raise FileExistsError(
-                    f"File exists at {dst}\n"
-                    "Use --override flag to overwrite existing files."
-                )
-            
+                raise FileExistsError(f"File exists at {dst}\n" "Use --override flag to overwrite existing files.")
+
             try:
                 # Explicit UTF-8 encoding (E1.12)
                 dst.write_text(content, encoding="utf-8")
@@ -271,10 +260,9 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
                 ) from e
             except UnicodeEncodeError as e:
                 raise ValueError(
-                    f"File encoding error while writing {dst}: {str(e)}\n"
-                    "Ensure template content is valid UTF-8."
+                    f"File encoding error while writing {dst}: {str(e)}\n" "Ensure template content is valid UTF-8."
                 ) from e
-            
+
             print(f"Placed {template_path} to {dst}")
         except (FileNotFoundError, PermissionError, ValueError, IsADirectoryError) as e:
             raise type(e)(str(e)) from e
@@ -290,19 +278,15 @@ def main() -> None:
             "  psr-build-template-structure --changelog-only\n"
             "  psr-build-template-structure --override (to overwrite existing files)"
         ),
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument("--pypi", action="store_true", help="Include default PyPI structure")
+    parser.add_argument("--kodi-addon", action="store_true", help="Include default Kodi addon structure")
+    parser.add_argument("--changelog-only", action="store_true", help="Only create changelog")
     parser.add_argument(
-        "--pypi", action="store_true", help="Include default PyPI structure"
-    )
-    parser.add_argument(
-        "--kodi-addon", action="store_true", help="Include default Kodi addon structure"
-    )
-    parser.add_argument(
-        "--changelog-only", action="store_true", help="Only create changelog"
-    )
-    parser.add_argument(
-        "--override", action="store_true", help="Override existing files (default: False)"
+        "--override",
+        action="store_true",
+        help="Override existing files (default: False)",
     )
     args = parser.parse_args()
 
@@ -327,6 +311,7 @@ def main() -> None:
     except Exception as e:
         print(f"Unexpected error: {str(e)}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

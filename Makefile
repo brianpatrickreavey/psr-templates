@@ -1,4 +1,4 @@
-.PHONY: test-unit test-integration-pre test-integration-post test-full lint format install-dev run-test-harness clean get-test-results coverage-report validate watch-tests build mypy
+.PHONY: test-unit test-integration-pre test-integration-post test-full lint flake8 black-check black-format mypy format install-dev run-test-harness clean get-test-results coverage-report validate watch-tests build
 
 # Clean build artifacts, caches, and generated files
 clean:
@@ -24,14 +24,24 @@ test-integration-post:
 # Full test suite
 test-full: test-unit test-integration-pre test-integration-post
 
-# Linting
-lint:
-	flake8 arranger tests
-	black --check arranger tests
+# Linting - individual tools
+flake8:
+	flake8 src/arranger tests
+
+black-check:
+	black --check src/arranger tests
+
+mypy:
+	mypy src/arranger
+
+# Linting - composite (runs all linting tools)
+lint: flake8 black-check mypy
 
 # Formatting
-format:
-	black arranger tests
+black-format:
+	black src/arranger tests
+
+format: black-format
 
 # Install dev dependencies
 install-dev:
@@ -104,6 +114,3 @@ watch-tests:
 build: clean
 	python -m build
 
-# Run type checking with mypy (once types added in phase 3)
-mypy:
-	mypy src/arranger tests --strict || echo "Note: mypy checks will be enforced in Phase 3"
