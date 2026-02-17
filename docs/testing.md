@@ -85,16 +85,124 @@ make test-integration-pre   # Pre-PSR setup validation
 make test-integration-post  # Post-PSR output validation
 ```
 
-**Pre-PSR Phase:**
-- Template arrangement in fixture repo
-- Commit generation
-- Setup validation before PSR execution
+**Test Categories:**
 
-**Post-PSR Phase:**
-- Generated changelog validation
-- Version numbers and dates
-- File rendering and format
-- Release artifacts
+1. **Pre-PSR Phase Tests** (`tests/integration/pre_psr/`):
+   - Validates that arranger correctly places templates in fixture repo
+   - Runs immediately after templates are committed to main branch
+   - Uses `test_template_arrangement()` to verify:
+     - `templates/CHANGELOG.md.j2` exists
+     - `templates/script.module.example/addon.xml.j2` exists
+   - Quick validation (~0.02s) before PSR execution
+   - No external dependencies
+
+2. **Post-PSR Phase Tests** (`tests/integration/post_psr/`):
+   - Validates that PSR correctly renders templates in fixture repo
+   - Runs after PSR creates releases and generates CHANGELOG.md/addon.xml
+   - **TestMultiReleaseProgression** (8 tests):
+     - `test_release_0_1_0_changelog`: First release only
+     - `test_release_0_1_0_addon_xml`: Version and structure validation
+     - `test_release_0_2_0_changelog_cumulative`: Cumulative history (0.1.0 + 0.2.0)
+     - `test_release_0_2_0_addon_xml_cumulative`: Version updated to 0.2.0
+     - `test_release_1_0_0_changelog_full_history`: All versions present
+     - `test_release_1_0_0_addon_xml_major_version`: Version 1.0.0
+     - `test_changelog_markdown_format`: Validates syntax
+     - `test_addon_xml_no_jinja_references`: No unrendered template markers
+   - **TestTemplateRenderingEdgeCases** (2 tests):
+     - `test_changelog_handles_empty_sections`: Empty content handled
+     - `test_addon_xml_has_required_attributes`: XML structure intact
+   - Tests gracefully skip if PSR hasn't run yet (pytest.skip)
+   - Full validation (~0.1s per test) when files exist
+
+## Integration Test Workflow
+
+### Dispatch Workflow (GitHub Actions)
+
+The psr-templates repository has a dispatch workflow that orchestrates testing:
+
+**Workflow:** `.github/workflows/dispatch-test-harness.yml`
+
+**How it works:**
+1. User runs: `make run-test-harness`
+2. Workflow sends `repository_dispatch` event to psr-templates-fixture repo
+3. Payload includes: templates_repo, templates_ref, run_id (metadata)
+4. Fixture repo's test-harness workflow receives event and:
+   - Clones templates from specified ref
+   - Copies templates to fixture repo
+   - Runs arranger to place templates
+   - Runs PSR to generate releases and artifacts
+   - Runs integration tests to validate output
+
+**Example:**
+```bash
+# In psr-templates repo
+make run-test-harness    # Dispatches "main" branch to fixture repo
+```
+
+This creates a workflow run in psr-templates-fixture that executes the full pipeline.
+
+**Monitoring:** `make watch-test-harness-output` and `make logs-test-harness`
+
+### Local Testing with act
+
+To simulate the GitHub Actions workflow locally (with Docker):
+
+```bash
+cd psr-templates-fixture
+make ci-simulate      # Runs test-harness-act.yml workflow locally
+```
+
+**Note:** This uses Docker and requires `act` to be installed. In some environments (like WSL), this may have issues contacting the Docker daemon.
+
+### Local Manual Testing
+
+For development without GitHub Actions:
+
+```bash
+# Step 1: Template arrangement (Pre-PSR)
+cd psr-templates-fixture
+python -m pytest tests/integration/pre_psr/ -v
+# Expected: test_template_arrangement passes
+
+# Step 2: Run PSR manually (if you have PSR installed)
+cd psr-templates-fixture
+semantic-release version  # Generate new release and render templates
+# Creates CHANGELOG.md and renders addon.xml.j2 → addon.xml
+
+# Step 3: Validate output (Post-PSR)
+python -m pytest tests/integration/post_psr/ -v
+# Expected: Multiple tests validate the generated files
+```
+
+### Integration Test Results
+
+Post-PSR tests validate three cumulative releases:
+
+**Release 0.1.0 (First release):**
+- CHANGELOG.md: Section for v0.1.0 only
+- addon.xml: Version="0.1.0", news section with all commits
+- Validates initial template rendering
+
+**Release 0.2.0 (Second release):**
+- CHANGELOG.md: Sections for v0.1.0 AND v0.2.0 (cumulative)
+- addon.xml: Version="0.2.0", news section with only 0.2.0 commits (NOT 0.1.0)
+- Validates cumulative CHANGELOG, latest-only news in addon.xml
+
+**Release 1.0.0 (Third release):**
+- CHANGELOG.md: All three sections (v0.1.0, v0.2.0, v1.0.0)
+- addon.xml: Version="1.0.0", news section with only 1.0.0 commits
+- Validates major version bump and history preservation in CHANGELOG
+
+### Test Helpers
+
+Shared parsing utilities in `psr-templates-fixture/tests/test_helpers.py`:
+
+- **AddonXmlParser**: Parses XML, extracts version/news/structure
+- **ChangelogParser**: Extracts releases, sections, commit counts
+- **JinjaTemplateValidator**: Detects unrendered Jinja2 syntax
+- **AddonXmlInfo** and **ReleaseInfo**: Data classes for parsed info
+
+These helpers are used by both test_multi_release.py and test_post_psr.py for consistent validation.
 
 ## CI/CD Pipeline
 
