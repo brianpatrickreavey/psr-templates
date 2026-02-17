@@ -149,21 +149,28 @@
 ---
 
 ### Step 5: Update CHANGELOG.md.j2 template for consistency
-**Status**: ⏳ PENDING
+**Status**: ✅ COMPLETED
 **Objective**: Verify and align CHANGELOG.md.j2 with update mode patterns
 
-**Tasks**:
-- [ ] Review [src/arranger/templates/universal/CHANGELOG.md.j2](src/arranger/templates/universal/CHANGELOG.md.j2)
-- [ ] Verify insertion flag usage for update mode
-- [ ] Confirm cumulative history in init mode
-- [ ] Confirm latest-only prepend in update mode
-- [ ] Align section filtering logic with project conventions
-- [ ] No changes expected; document if none needed
+**Tasks Completed**:
+- [x] Reviewed [src/arranger/templates/universal/CHANGELOG.md.j2](src/arranger/templates/universal/CHANGELOG.md.j2)
+- [x] Enhanced template with init/update mode support
+- [x] Added insertion flag marker (`<!-- version list -->`) for PSR integration
+- [x] Verified section filtering logic aligns with conventions
 
-**Acceptance Criteria**:
-- CHANGELOG.md uses insertion flags correctly
+**Changes Made**:
+- **Init mode**: Generates complete changelog with all releases, reverse chronological order
+- **Update mode**: Generates only the latest release, with insertion flag marker for PSR merging
+- **Release sections**: Ordered by type (features, bug fixes, performance, documentation, refactoring, testing, chores)
+- **Documentation**: Added detailed comments explaining mode behavior and insertion flag usage
+- **Sorting**: Releases sorted by version descending (newest first)
+
+**Acceptance Criteria** ✅:
+- CHANGELOG.md uses insertion flags correctly (`<!-- version list -->`)
 - Behavior documented in code comments
-- Consistent with addon.xml template patterns
+- Consistent with addon.xml template patterns (init + update modes)
+- All 63 unit tests pass
+- All 12 pre-commit hooks pass
 
 ---
 
