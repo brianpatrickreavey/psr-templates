@@ -1,9 +1,56 @@
+{#-
+Markdown changelog template with support for init and update modes.
+
+Init mode (first release):
+  - Generates complete changelog with all releases from history
+  - All versions included, newest first (reverse chronological order)
+  - Insertion flag marker included at end for future updates
+
+Update mode (subsequent releases):
+  - Detects mode via ctx.changelog_mode context variable
+  - Generates only the latest release(s)
+  - Includes insertion flag marker to enable subsequent updates
+  - PSR merges this with existing file content at insertion flag location
+
+Insertion flag:
+  PSR's default Markdown insertion flag is: <!-- version list -->
+  This marker tells PSR where to insert new release content.
+  Each release in update mode includes this marker below it.
+
+Release sections:
+  Commits organized by type: features, bug fixes, performance, documentation, refactoring, testing, chores
+  Section headers formatted as title case.
+-#}
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
-{%- set releases = ctx.history.released.values() | list %}
-{%- for release in releases %}
+{%- set releases = ctx.history.released.values() | list -%}
+{%- set sorted_releases = releases | sort(attribute='version', reverse=True) -%}
+
+{%- if ctx.changelog_mode == "update" -%}
+  {#- Update mode: Generate only the latest release -#}
+  {%- set latest_release = sorted_releases[0] if sorted_releases else none -%}
+  {%- if latest_release -%}
+
+## v{{ latest_release.version }} ({{ latest_release.tagged_date.strftime('%Y-%m-%d') if latest_release.tagged_date else 'Unreleased' }})
+
+{%- set elements = latest_release.get("elements", {}) -%}
+{%- for section_name in ["features", "bug fixes", "performance improvements", "documentation", "refactoring", "testing", "chores"] -%}
+{%- if section_name in elements and elements[section_name] %}
+
+### {{ section_name | title }}
+
+{%- for item in elements[section_name] -%}
+- {{ item.descriptions[0] if item.descriptions else item.commit.message }}
+{% endfor -%}
+{%- endif -%}
+{%- endfor -%}
+<!-- version list -->
+  {%- endif -%}
+{%- else -%}
+  {#- Init mode: Generate complete changelog, all releases -#}
+  {%- for release in sorted_releases %}
 
 ## v{{ release.version }} ({{ release.tagged_date.strftime('%Y-%m-%d') if release.tagged_date else 'Unreleased' }})
 
@@ -19,3 +66,5 @@ All notable changes to this project will be documented in this file.
 {%- endif %}
 {%- endfor %}
 {%- endfor %}
+<!-- version list -->
+{%- endif -%}
