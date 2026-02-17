@@ -36,13 +36,14 @@ All notable changes to this project will be documented in this file.
 ## v{{ latest_release.version }} ({{ latest_release.tagged_date.strftime('%Y-%m-%d') if latest_release.tagged_date else 'Unreleased' }})
 
 {%- set elements = latest_release.get("elements", {}) -%}
-{%- for section_name in ["features", "bug fixes", "performance improvements", "documentation", "refactoring", "testing", "chores"] -%}
-{%- if section_name in elements and elements[section_name] %}
+{%- set section_map = {"feat": "Features", "fix": "Bug Fixes", "perf": "Performance Improvements", "docs": "Documentation", "refactor": "Refactoring", "test": "Testing", "chore": "Chores"} -%}
+{%- for tag, section_name in section_map.items() -%}
+{%- if tag in elements and elements[tag] %}
 
-### {{ section_name | title }}
+### {{ section_name }}
 
-{%- for item in elements[section_name] -%}
-- {{ item.descriptions[0] if item.descriptions else item.commit.message }}
+{%- for item in elements[tag] -%}
+- {{ item.descriptions[0] if item.descriptions else "" }}
 {% endfor -%}
 {%- endif -%}
 {%- endfor -%}
@@ -55,13 +56,14 @@ All notable changes to this project will be documented in this file.
 ## v{{ release.version }} ({{ release.tagged_date.strftime('%Y-%m-%d') if release.tagged_date else 'Unreleased' }})
 
 {%- set elements = release.get("elements", {}) %}
-{%- for section_name in ["features", "bug fixes", "performance improvements", "documentation", "refactoring", "testing", "chores"] %}
-{%- if section_name in elements and elements[section_name] %}
+{%- set section_map = {"feat": "Features", "fix": "Bug Fixes", "perf": "Performance Improvements", "docs": "Documentation", "refactor": "Refactoring", "test": "Testing", "chore": "Chores"} %}
+{%- for tag, section_name in section_map.items() %}
+{%- if tag in elements and elements[tag] %}
 
-### {{ section_name | title }}
+### {{ section_name }}
 
-{%- for item in elements[section_name] %}
-- {{ item.descriptions[0] if item.descriptions else item.commit.message }}
+{%- for item in elements[tag] %}
+- {{ item.descriptions[0] if item.descriptions else "" }}
 {%- endfor %}
 {%- endif %}
 {%- endfor %}

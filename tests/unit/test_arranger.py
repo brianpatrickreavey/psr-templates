@@ -1072,3 +1072,184 @@ class TestPhase5Coverage:
                 main()
 
             assert exc_info.value.code == 1
+
+
+class TestTemplateRendering:
+    """Test Jinja2 template syntax and rendering with mock PSR context."""
+
+    def test_addon_xml_template_syntax_valid(self):
+        """Test addon.xml.j2 has valid Jinja2 syntax."""
+        from jinja2 import Environment, FileSystemLoader
+
+        env = Environment(loader=FileSystemLoader("src/arranger/templates/kodi-addons"))
+        template = env.get_template("addon.xml.j2")
+
+        # Template compiles if syntax is valid
+        assert template is not None
+
+    def test_addon_xml_template_renders_init_mode(self):
+        """Test addon.xml.j2 renders correctly in init mode."""
+        from jinja2 import Environment, FileSystemLoader
+        from types import SimpleNamespace
+
+        env = Environment(loader=FileSystemLoader("src/arranger/templates/kodi-addons"))
+        template = env.get_template("addon.xml.j2")
+
+        # Mock PSR context for init mode (first release)
+        # PSR wraps context in a 'ctx' object
+        ctx = SimpleNamespace(
+            changelog_mode="init",
+            history=SimpleNamespace(
+                released={
+                    "0.1.0": {
+                        "elements": {
+                            "feat": [{"descriptions": ["test feature"], "breaking_descriptions": []}]
+                        }
+                    }
+                }
+            ),
+        )
+
+        output = template.render(ctx=ctx)
+
+        # Verify output contains expected XML structure
+        assert '<?xml version="1.0"' in output
+        assert '<addon' in output
+        assert 'version="0.1.0"' in output
+        assert "id=" in output
+        assert "[feat] test feature" in output
+
+    def test_addon_xml_template_renders_update_mode(self):
+        """Test addon.xml.j2 renders correctly in update mode."""
+        from jinja2 import Environment, FileSystemLoader
+        from types import SimpleNamespace
+
+        env = Environment(loader=FileSystemLoader("src/arranger/templates/kodi-addons"))
+        template = env.get_template("addon.xml.j2")
+
+        # Mock PSR context for update mode (cumulative releases)
+        ctx = SimpleNamespace(
+            changelog_mode="update",
+            history=SimpleNamespace(
+                released={
+                    "0.1.0": {
+                        "elements": {
+                            "feat": [{"descriptions": ["old feature"], "breaking_descriptions": []}]
+                        }
+                    },
+                    "0.2.0": {
+                        "elements": {
+                            "feat": [{"descriptions": ["new feature"], "breaking_descriptions": []}]
+                        }
+                    },
+                }
+            ),
+        )
+
+        output = template.render(ctx=ctx)
+
+        # Verify output contains expected XML structure
+        assert '<?xml version="1.0"' in output
+        assert '<addon' in output
+        # Latest version should be selected (0.2.0 comes after 0.1.0 lexicographically)
+        assert 'version="0.2.0"' in output
+        # News should contain latest release only
+        assert "Release v0.2.0" in output
+        assert "[feat] new feature" in output
+
+    def test_changelog_md_template_syntax_valid(self):
+        """Test CHANGELOG.md.j2 has valid Jinja2 syntax."""
+        from jinja2 import Environment, FileSystemLoader
+
+        env = Environment(loader=FileSystemLoader("src/arranger/templates/universal"))
+        template = env.get_template("CHANGELOG.md.j2")
+
+        # Template compiles if syntax is valid
+        assert template is not None
+
+    def test_changelog_md_template_renders_init_mode(self):
+        """Test CHANGELOG.md.j2 renders correctly in init mode."""
+        from jinja2 import Environment, FileSystemLoader
+        from types import SimpleNamespace
+        from datetime import datetime, timezone
+
+        env = Environment(loader=FileSystemLoader("src/arranger/templates/universal"))
+        template = env.get_template("CHANGELOG.md.j2")
+
+        # Mock PSR context for init mode
+        # Create a release dict with proper structure (similar to PSR's Release TypedDict)
+        release_0_1_0 = {
+            "version": "0.1.0",
+            "tagged_date": datetime(2026, 2, 17, tzinfo=timezone.utc),
+            "tagger": None,
+            "committer": None,
+            "elements": {
+                "feat": [
+                    {"descriptions": ["test feature"], "breaking_descriptions": []}
+                ],
+                "fix": [{"descriptions": ["test fix"], "breaking_descriptions": []}],
+            },
+        }
+
+        ctx = SimpleNamespace(
+            changelog_mode="init",
+            history=SimpleNamespace(
+                released={
+                    "0.1.0": release_0_1_0,
+                }
+            ),
+        )
+
+        output = template.render(ctx=ctx)
+
+        # Verify output contains expected Markdown structure
+        assert "# Changelog" in output
+        assert "## v0.1.0" in output or "v0.1.0" in output
+        assert "[feat]" in output or "test feature" in output
+
+    def test_changelog_md_template_renders_update_mode(self):
+        """Test CHANGELOG.md.j2 renders correctly in update mode."""
+        from jinja2 import Environment, FileSystemLoader
+        from types import SimpleNamespace
+        from datetime import datetime, timezone
+
+        env = Environment(loader=FileSystemLoader("src/arranger/templates/universal"))
+        template = env.get_template("CHANGELOG.md.j2")
+
+        # Mock PSR context for update mode (cumulative releases)
+        release_0_1_0 = {
+            "version": "0.1.0",
+            "tagged_date": datetime(2026, 2, 16, tzinfo=timezone.utc),
+            "tagger": None,
+            "committer": None,
+            "elements": {
+                "feat": [{"descriptions": ["old feature"], "breaking_descriptions": []}]
+            },
+        }
+        release_0_2_0 = {
+            "version": "0.2.0",
+            "tagged_date": datetime(2026, 2, 17, tzinfo=timezone.utc),
+            "tagger": None,
+            "committer": None,
+            "elements": {
+                "feat": [{"descriptions": ["new feature"], "breaking_descriptions": []}]
+            },
+        }
+
+        ctx = SimpleNamespace(
+            changelog_mode="update",
+            history=SimpleNamespace(
+                released={
+                    "0.1.0": release_0_1_0,
+                    "0.2.0": release_0_2_0,
+                }
+            ),
+        )
+
+        output = template.render(ctx=ctx)
+
+        # Verify output contains expected Markdown structure
+        assert "# Changelog" in output
+        # Update mode should include only the latest release (0.2.0)
+        assert "0.2.0" in output
+        assert "new feature" in output
