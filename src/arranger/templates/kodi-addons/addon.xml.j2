@@ -40,19 +40,28 @@ Release v{{ version }}
 {%- set release = ctx.history.released[version] -%}
 {%- set elements = release.get("elements") if release is mapping else release.elements -%}
 
+{%- set section_for = {
+  "feat": ["feat", "features"],
+  "fix": ["fix", "bug fixes"],
+  "perf": ["perf", "performance"]
+} -%}
+
 {%- set order = ["feat", "fix", "perf"] -%}
 
 {%- for tag in order -%}
-{%- if tag in elements -%}
-{%- for item in elements[tag] -%}
-{% for d in item.descriptions %}
+{%- set possible_keys = section_for[tag] -%}
+{%- for key in possible_keys -%}
+  {%- if key in elements and elements[key] -%}
+    {%- for item in elements[key] -%}
+      {% for d in item.descriptions %}
 [{{ tag }}] {{ d }}
-{%- endfor -%}
-{%- for bd in item.breaking_descriptions -%}
+      {%- endfor -%}
+      {%- for bd in item.breaking_descriptions -%}
 [{{ tag }}] BREAKING: {{ bd }}
+      {%- endfor -%}
+    {%- endfor -%}
+  {%- endif -%}
 {%- endfor -%}
-{%- endfor -%}
-{%- endif -%}
 {%- endfor -%}
         </news>
     </extension>
