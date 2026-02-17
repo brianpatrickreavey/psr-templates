@@ -28,23 +28,35 @@
 ---
 
 ### Step 2: Clarify [tool.arranger] configuration scope
-**Status**: ⏳ PENDING
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-17
 **Objective**: Review and document the intended scope of [tool.arranger] configuration
 
-**Tasks**:
-- [ ] Review [pyproject.toml](pyproject.toml) in psr-templates
-- [ ] Verify [tool.arranger] is used for:
-  - Template directory location (templates-dir)
-  - Mode flags (--kodi)
-  - File mapping overrides (source-mappings)
-- [ ] Confirm [tool.arranger] is NOT used for:
-  - Addon metadata (id, name, requires, version)
-- [ ] Document findings in [docs/development/architecture.md](docs/development/architecture.md)
+**Tasks Completed**:
+- [x] Reviewed [pyproject.toml](pyproject.toml) in both psr-templates and psr-templates-fixture
+- [x] Verified [tool.arranger] is used for:
+  - `templates-dir`: Template directory location string
+  - `use-default-pypi-structure`: Boolean mode flag for PyPI projects
+  - `use-default-kodi-addon-structure`: Boolean mode flag for Kodi addons
+  - `kodi-project-name`: String identifier for Kodi project directory name
+  - `source-mappings`: Dictionary of custom source-to-destination template mappings
+- [x] Confirmed [tool.arranger] is NOT used for:
+  - Addon metadata (id, name, requires, version) - these should come from addon.xml
+- [x] Reviewed [src/arranger/run.py](src/arranger/run.py) to understand config loading and validation
+- [x] Reviewed existing [docs/development/architecture.md](docs/development/architecture.md)
 
-**Acceptance Criteria**:
-- Documentation clearly separates arranger's role from PSR's role
-- Code comments reflect scope boundaries
-- No metadata stored in [tool.arranger]
+**Key Findings**:
+- Fixture's pyproject.toml currently has: `use-default-kodi-addon-structure = true`, `kodi-project-name = "script.module.example"`, `source-mappings = {}`
+- Arranger design is clean: config + CLI args determine template placement
+- PSR handles rendering separately—proper separation of concerns
+- Code validation already implements type and value checking
+- No metadata currently stored in [tool.arranger] ✓
+- Architecture doc clearly explains arranger vs PSR roles ✓
+
+**Acceptance Criteria**: ✅ MET
+- Configuration scope is fully documented in architecture doc
+- [tool.arranger] is used for configuration/discovery only (no metadata)
+- Separation of concerns between arranger and PSR is clear
 
 ---
 
