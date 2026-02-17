@@ -269,7 +269,7 @@ def test_build_mappings_with_kodi(self, mocker):
     """Test build_mappings with kodi addon enabled."""
     config = {
         "use-default-kodi-addon-structure": True,
-        "kodi-project-name": "script.module.test",
+        "kodi-addon-directory": "script.module.test",
         "source-mappings": {},
     }
     args = mocker.MagicMock()

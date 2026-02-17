@@ -62,7 +62,7 @@ templates-dir = "templates"
 
 # Optional: include default Kodi addon structure
 use-default-kodi-addon-structure = true
-kodi-project-name = "script.module.example"
+kodi-addon-directory = "script.module.example"
 
 # Optional: custom source-to-destination mappings
 [tool.arranger.source-mappings]
@@ -78,7 +78,7 @@ kodi-project-name = "script.module.example"
 [tool.arranger]
 templates-dir = "templates"
 use-default-kodi-addon-structure = true
-kodi-project-name = "script.module.myproject"
+kodi-addon-directory = "script.module.myproject"
 ```
 
 Then run:
@@ -149,7 +149,7 @@ All configuration is optional. Here's the complete reference:
 | `templates-dir` | string | `"templates"` | Directory name containing template files (relative path only) |
 | `use-default-pypi-structure` | boolean | `false` | Include PyPI package structure templates |
 | `use-default-kodi-addon-structure` | boolean | `false` | Include Kodi addon structure templates |
-| `kodi-project-name` | string | `` | Name of Kodi addon project (required if using Kodi structure) |
+| `kodi-addon-directory` | string | `` | Directory name of Kodi addon project (required if using Kodi structure) |
 | `source-mappings` | dict | `{}` | Custom source-to-destination template mappings |
 
 ### Configuration Validation
@@ -163,7 +163,7 @@ The tool validates all configuration at runtime:
 
 Invalid configuration produces clear error messages:
 ```
-Error: Configuration error: 'kodi-project-name' cannot be an empty string.
+Error: Configuration error: 'kodi-addon-directory' cannot be an empty string.
 ```
 
 ## Troubleshooting
@@ -186,10 +186,10 @@ psr-build-template-structure
 - Incorrect indentation
 ```toml
 # ❌ WRONG: Missing quotes
-kodi-project-name = script.module.example
+kodi-addon-directory = script.module.example
 
 # ✅ CORRECT: Strings need quotes
-kodi-project-name = "script.module.example"
+kodi-addon-directory = "script.module.example"
 ```
 
 #### Error: "Permission denied creating/accessing fixture directory"

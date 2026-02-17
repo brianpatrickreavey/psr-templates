@@ -38,7 +38,7 @@
   - `templates-dir`: Template directory location string
   - `use-default-pypi-structure`: Boolean mode flag for PyPI projects
   - `use-default-kodi-addon-structure`: Boolean mode flag for Kodi addons
-  - `kodi-project-name`: String identifier for Kodi project directory name
+  - `kodi-addon-directory`: String identifier for Kodi project directory name
   - `source-mappings`: Dictionary of custom source-to-destination template mappings
 - [x] Confirmed [tool.arranger] is NOT used for:
   - Addon metadata (id, name, requires, version) - these should come from addon.xml
@@ -46,7 +46,7 @@
 - [x] Reviewed existing [docs/development/architecture.md](docs/development/architecture.md)
 
 **Key Findings**:
-- Fixture's pyproject.toml currently has: `use-default-kodi-addon-structure = true`, `kodi-project-name = "script.module.example"`, `source-mappings = {}`
+- Fixture's pyproject.toml currently has: `use-default-kodi-addon-structure = true`, `kodi-addon-directory = "script.module.example"`, `source-mappings = {}`
 - Arranger design is clean: config + CLI args determine template placement
 - PSR handles rendering separately—proper separation of concerns
 - Code validation already implements type and value checking
@@ -102,11 +102,15 @@
 
 ---
 
-### Step 4: Enhance addon.xml.j2 template for update mode
-**Status**: ⏳ PENDING
-**Objective**: Update template to support both init and update modes with proper version/news handling
+### Step 4: Enhance addon.xml.j2 template for update mode + refactor config key
+**Status**: 🔄 IN PROGRESS
+**Objective**: Update template to support both init and update modes, refactor confusing config key name
 
 **Tasks**:
+- [x] Refactor configuration key: `kodi-project-name` → `kodi-addon-directory` ✅ COMPLETED
+  - More accurately reflects its use as a directory path, not project name
+  - Updated across: config validation, variable names, documentation, tests, fixture, tools
+  - This is a breaking change (acceptable at this stage of development)
 - [ ] Review [src/arranger/templates/kodi-addons/addon.xml.j2](src/arranger/templates/kodi-addons/addon.xml.j2)
 - [ ] Add conditional logic for changelog_mode detection:
   - **Init mode**: Generate complete addon.xml from scratch
@@ -115,14 +119,15 @@
   - Replace `versions[0]` with explicit sort logic
   - Ensure latest semver is reliably selected
 - [ ] **Update mode logic**:
-  - Read existing addon.xml using `read_file` filter
-  - Extract current version; warn if different from PSR-determined version
-  - Replace version attribute with PSR version
+  - Read existing addon.xml using `{{ ctx.repo_root }}/{{ kodi_addon_directory }}/addon.xml` path
+  - Use `read_file` filter to load existing XML
+  - Parse XML to extract id, name, provider-name, requires (preserve exactly)
+  - Replace version attribute with PSR-determined version
   - Replace news section with latest release only (trim all older releases)
-  - Preserve id, name, provider-name, requires, all other XML structure
+  - Output complete valid XML
 - [ ] **Init mode logic**:
-  - Generate complete XML structure
-  - Use metadata from context (with defaults for new projects)
+  - Generate complete XML structure with sensible defaults
+  - Use metadata from context if available
   - Version from latest release
   - News with latest release notes
 - [ ] Validate generated XML is well-formed
@@ -134,6 +139,7 @@
 - News section contains only latest release (no history)
 - Metadata (id, name, requires) preserved in update mode
 - Version mismatches logged as warnings
+- Config key refactored consistently across codebase
 
 ---
 

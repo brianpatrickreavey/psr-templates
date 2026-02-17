@@ -1,1 +1,1 @@
-# PSR Templates Arranger Package
+"""PSR Templates Arranger Package."""

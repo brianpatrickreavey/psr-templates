@@ -8,7 +8,7 @@ This project is a Python package providing a CLI tool for placing PSR templates 
 
 - **src/arranger/run.py**: Main CLI module that parses `[tool.arranger]` config from pyproject.toml, builds template mappings, and places raw templates using `importlib.resources`. Contains ~700 lines with 9 refactored helper functions (Phase 4).
 - **src/arranger/templates/**: Bundled package data containing template files (Jinja2 `.j2` templates for CHANGELOG, Kodi addons, PyPI packages, etc.). Accessed via `importlib.resources` for cross-platform embedded file handling.
-- **Configuration**: `[tool.arranger]` section in `pyproject.toml` with options like `use-default-pypi-structure`, `kodi-project-name`, `templates-dir`, and `source-mappings` for custom templates.
+- **Configuration**: `[tool.arranger]` section in `pyproject.toml` with options like `use-default-pypi-structure`, `kodi-addon-directory`, `templates-dir`, and `source-mappings` for custom templates.
 
 ### Data Flow
 

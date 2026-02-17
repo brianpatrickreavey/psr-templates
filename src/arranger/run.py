@@ -27,7 +27,7 @@ Configuration (in pyproject.toml):
   [tool.arranger]
   templates-dir = "templates"  # Optional: where to find templates
   use-default-kodi-addon-structure = false  # Include Kodi addon defaults
-  kodi-project-name = "script.module.example"  # For Kodi projects
+  kodi-addon-directory = "script.module.example"  # Kodi addon directory name
   source-mappings = {dest-path = "template-path"}  # Custom template mappings
 """
 
@@ -50,7 +50,7 @@ VALID_CONFIG_KEYS = {
     "templates-dir",
     "use-default-pypi-structure",
     "use-default-kodi-addon-structure",
-    "kodi-project-name",
+    "kodi-addon-directory",
     "source-mappings",
 }
 
@@ -67,7 +67,7 @@ def load_config(pyproject_path: Path) -> Dict[str, Any]:
       - templates-dir (str): Directory name containing templates (default: "templates")
       - use-default-pypi-structure (bool): Include PyPI structure defaults
       - use-default-kodi-addon-structure (bool): Include Kodi addon defaults
-      - kodi-project-name (str): Name of Kodi addon project directory
+      - kodi-addon-directory (str): Directory name of Kodi addon (e.g., script.module.example)
       - source-mappings (dict): Custom source-to-destination mappings
 
     Args:
@@ -127,7 +127,7 @@ def _validate_config_types(config: Dict[str, Any]) -> None:
         "templates-dir": str,
         "use-default-pypi-structure": bool,
         "use-default-kodi-addon-structure": bool,
-        "kodi-project-name": str,
+        "kodi-addon-directory": str,
         "source-mappings": dict,
     }
 
@@ -165,10 +165,10 @@ def _validate_config_values(config: Dict[str, Any]) -> None:
                 f"Use 'templates-dir = \"mytemplates\"' instead of 'templates-dir = \"path/to/mytemplates\"'"
             )
 
-    # Validate kodi-project-name
-    kodi_project_name = config.get("kodi-project-name")
-    if kodi_project_name is not None and not kodi_project_name:
-        raise ValueError("Configuration error: 'kodi-project-name' cannot be an empty string.")
+    # Validate kodi-addon-directory
+    kodi_addon_directory = config.get("kodi-addon-directory")
+    if kodi_addon_directory is not None and not kodi_addon_directory:
+        raise ValueError("Configuration error: 'kodi-addon-directory' cannot be an empty string.")
 
     # Validate source-mappings is a valid dictionary
     source_mappings = config.get("source-mappings", {})
@@ -253,9 +253,9 @@ def _build_default_mappings(
         pass
 
     if args.kodi_addon or config.get("use-default-kodi-addon-structure"):
-        kodi_project_name = config.get("kodi-project-name")
-        if kodi_project_name:
-            mappings[f"{templates_dir}/{kodi_project_name}/addon.xml.j2"] = DEFAULT_KODI_ADDON_DEST
+        kodi_addon_directory = config.get("kodi-addon-directory")
+        if kodi_addon_directory:
+            mappings[f"{templates_dir}/{kodi_addon_directory}/addon.xml.j2"] = DEFAULT_KODI_ADDON_DEST
         else:
             mappings[f"{templates_dir}/addon.xml.j2"] = DEFAULT_KODI_ADDON_DEST
 
@@ -600,7 +600,7 @@ def _parse_addon_xml(addon_xml_path: Path) -> Optional[Dict[str, Any]]:
 
 
 def _validate_addon_metadata_consistency(
-    fixture_dir: Path, kodi_project_name: str, config_metadata: Optional[Dict[str, Any]]
+    fixture_dir: Path, kodi_addon_directory: str, config_metadata: Optional[Dict[str, Any]]
 ) -> None:
     """
     Check for consistency between pyproject.toml config and existing addon.xml.
@@ -610,11 +610,11 @@ def _validate_addon_metadata_consistency(
 
     Args:
         fixture_dir: Root directory of fixture/project.
-        kodi_project_name: Project name from config or CLI arg.
+        kodi_addon_directory: Directory name of Kodi addon from config or CLI arg.
         config_metadata: Addon metadata from [tool.arranger] config, if present.
     """
     # Determine expected addon.xml path
-    addon_xml_path = fixture_dir / kodi_project_name / "addon.xml"
+    addon_xml_path = fixture_dir / kodi_addon_directory / "addon.xml"
 
     # Parse existing addon.xml if it exists
     existing_metadata = _parse_addon_xml(addon_xml_path)
@@ -779,10 +779,10 @@ def main() -> None:
         mappings = build_mappings(config, args)
 
         # Validate addon metadata consistency if kodi addon is configured
-        kodi_project_name = config.get("kodi-project-name")
+        kodi_addon_directory = config.get("kodi-addon-directory")
         if args.kodi_addon or config.get("use-default-kodi-addon-structure"):
-            if kodi_project_name:
-                _validate_addon_metadata_consistency(Path("."), kodi_project_name, None)
+            if kodi_addon_directory:
+                _validate_addon_metadata_consistency(Path("."), kodi_addon_directory, None)
 
         arrange_templates(Path("."), mappings, override=args.override)
         print("✓ Template structure built successfully.")

@@ -231,7 +231,7 @@ class TestBuildMappings:
         """Test build_mappings with kodi enabled."""
         config = {
             "use-default-kodi-addon-structure": True,
-            "kodi-project-name": "script.module.test",
+            "kodi-addon-directory": "script.module.test",
             "source-mappings": {},
         }
         args = mocker.MagicMock()
@@ -274,7 +274,7 @@ class TestBuildMappings:
     def test_build_mappings_kodi_via_args(self, mocker):
         """Test build_mappings with kodi enabled via args."""
         config = {
-            "kodi-project-name": "script.module.arg",
+            "kodi-addon-directory": "script.module.arg",
             "source-mappings": {},
         }
         args = mocker.MagicMock()
@@ -754,10 +754,10 @@ class TestPhase5Coverage:
         with pytest.raises(ValueError, match="Invalid type"):
             build_mappings(config, args)
 
-    def test_config_validation_invalid_kodi_project_type(self, mocker):
-        """Test config validation rejects non-string kodi-project-name."""
+    def test_config_validation_rejects_non_string_kodi_addon_directory(self, mocker):
+        """Test config validation rejects non-string kodi-addon-directory."""
         config = {
-            "kodi-project-name": ["list", "value"],  # Should be string
+            "kodi-addon-directory": ["list", "value"],  # Should be string
             "source-mappings": {},
         }
         args = mocker.MagicMock()
@@ -796,10 +796,10 @@ class TestPhase5Coverage:
         with pytest.raises(ValueError, match="simple directory name"):
             build_mappings(config, args)
 
-    def test_config_validation_empty_kodi_project_name(self, mocker):
-        """Test config validation rejects empty kodi-project-name."""
+    def test_config_validation_empty_kodi_addon_directory(self, mocker):
+        """Test config validation rejects empty kodi-addon-directory."""
         config = {
-            "kodi-project-name": "",  # Empty string
+            "kodi-addon-directory": "",  # Empty string
             "source-mappings": {},
         }
         args = mocker.MagicMock()
@@ -840,7 +840,7 @@ class TestPhase5Coverage:
         """Test build_mappings with kodi flag but no project name (uses fallback)."""
         config = {
             "use-default-kodi-addon-structure": True,
-            # No kodi-project-name
+            # No kodi-addon-directory
             "source-mappings": {},
         }
         args = mocker.MagicMock()
