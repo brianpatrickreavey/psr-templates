@@ -47,8 +47,8 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
-exclude = ["tests/", "build/", "dist/"]
+exclude = ["tests/", "tools/", "build/", "dist/"]
 
 [[tool.mypy.overrides]]
-module = ["tomllib", "importlib.resources"]
+module = ["tomllib", "importlib.resources", "jinja2"]
 ignore_missing_imports = true

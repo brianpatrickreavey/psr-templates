@@ -44,7 +44,7 @@ All notable changes to this project will be documented in this file.
 
 ### {{ section_name }}
 
-{%- for item in elements[key_to_use] -%}
+{% for item in elements[key_to_use] -%}
 - {{ item.descriptions[0] if item.descriptions else "" }}
 {% endfor -%}
 {%- endif -%}
@@ -66,7 +66,7 @@ All notable changes to this project will be documented in this file.
 
 ### {{ section_name }}
 
-{%- for item in elements[key_to_use] %}
+{% for item in elements[key_to_use] %}
 - {{ item.descriptions[0] if item.descriptions else "" }}
 {%- endfor %}
 {%- endif %}
