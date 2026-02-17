@@ -24,7 +24,7 @@ find = {where = ["src"]}
 arranger = ["templates/**/*"]
 
 [dependency-groups]
-dev = ["pytest", "pytest-mock", "pytest-cov", "flake8", "flake8-pyproject", "black", "python-semantic-release>=10.5.3", "mypy"]
+dev = ["pytest", "pytest-mock", "pytest-cov", "flake8", "flake8-pyproject", "black", "python-semantic-release>=10.5.3", "mypy", "pre-commit"]
 
 [tool.black]
 line-length = 120

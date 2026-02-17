@@ -1,0 +1,105 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run Flake8
+        run: |
+          flake8 src/arranger tests
+        continue-on-error: ${{ matrix.python-version == '3.8' }}
+
+      - name: Check code formatting with Black
+        run: |
+          black --check src/arranger tests
+        continue-on-error: ${{ matrix.python-version == '3.8' }}
+
+      - name: Run mypy type checking
+        run: |
+          mypy src/arranger
+        continue-on-error: ${{ matrix.python-version == '3.8' }}
+
+      - name: Run unit tests
+        run: |
+          pytest tests/unit/ -v --cov=arranger --cov-report=xml --cov-report=term-missing --cov-fail-under=95
+        continue-on-error: ${{ matrix.python-version != '3.9' }}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        if: matrix.python-version == '3.9'
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Comment PR with results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { context } = require('@actions/github');
+            const fs = require('fs');
+
+            // Get test results summary
+            let comment = `## ✅ PR Validation Results (Python ${{ matrix.python-version }})\n\n`;
+            comment += `- **Status**: ${{ job.status }}\n`;
+            comment += `- **Linting**: flake8, black, mypy\n`;
+            comment += `- **Tests**: Unit tests with coverage tracking\n\n`;
+            comment += `Run \`make validate\` locally to check all validations.\n`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  py39-required:
+    name: Python 3.9 — Required Status
+    needs: validate
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check Python 3.9 tests passed
+        if: needs.validate.result != 'success'
+        run: |
+          echo "Python 3.9 tests must pass!"
+          exit 1
+      - name: Status check passed
+        run: echo "All required validations passed ✅"

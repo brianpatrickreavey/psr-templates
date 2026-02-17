@@ -1,0 +1,106 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+# Install hooks: pre-commit install
+# Run hooks: pre-commit run --all-files
+
+repos:
+  # Code formatting with black
+  - repo: https://github.com/psf/black
+    rev: "24.1.1"
+    hooks:
+      - id: black
+        language_version: python3.9
+        name: Black code formatting
+        entry: black
+        types: [python]
+        require_serial: true
+
+  # Flake8 linting
+  - repo: https://github.com/PyCQA/flake8
+    rev: "7.0.0"
+    hooks:
+      - id: flake8
+        name: Flake8 linting
+        additional_dependencies:
+          - flake8-docstrings
+          - flake8-bugbear
+        args: ["--config=setup.cfg"]
+        types: [python]
+
+  # mypy static type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: "v1.8.0"
+    hooks:
+      - id: mypy
+        name: mypy type checking
+        additional_dependencies:
+          - types-setuptools
+        args: ["--strict", "--python-version=3.9"]
+        types: [python]
+        require_serial: true
+
+  # Sort imports
+  - repo: https://github.com/PyCQA/isort
+    rev: "5.13.2"
+    hooks:
+      - id: isort
+        name: isort import sorting
+        args: ["--profile", "black", "--line-length=120"]
+        types: [python]
+
+  # YAML linting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: "v4.5.0"
+    hooks:
+      - id: check-yaml
+        name: YAML syntax check
+        args: ["--unsafe"]
+
+  # JSON validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: "v4.5.0"
+    hooks:
+      - id: check-json
+        name: JSON syntax check
+
+  # TOML validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: "v4.5.0"
+    hooks:
+      - id: check-toml
+        name: TOML syntax check
+
+  # File format checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: "v4.5.0"
+    hooks:
+      - id: trailing-whitespace
+        name: Trailing whitespace check
+      - id: end-of-file-fixer
+        name: End of file fixer
+      - id: check-merge-conflict
+        name: Merge conflict check
+      - id: fix-byte-order-marker
+        name: Remove BOM marker
+
+# Configuration
+default_language_version:
+  python: python3.9
+
+# Run only on changed files (faster)
+# Set to false in CI to check all files
+default_stages: [pre-commit]
+
+# Exclude patterns
+exclude: |
+  (?x)^(
+    \.venv/|
+    venv/|
+    __pycache__|
+    \.git/|
+    \.pytest_cache/|
+    \.mypy_cache/|
+    build/|
+    dist/|
+    \.egg-info/
+  )

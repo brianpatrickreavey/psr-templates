@@ -34,4 +34,3 @@ The project improvements are structured in 5 phases:
 5. **Phase 5**: Test coverage & documentation (22 new tests + D4.2-D4.8 docs, 98% coverage, 56 tests total)
 
 See [AUDIT-FINDINGS.md](../../AUDIT-FINDINGS.md) for detailed progress tracking.
-
