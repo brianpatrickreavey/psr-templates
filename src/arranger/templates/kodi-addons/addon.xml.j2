@@ -1,11 +1,11 @@
 {#-
 Kodi addon.xml template with support for init and update modes.
 
-Init mode (first release):
+Init mode (no existing addon.xml):
   - Generates complete addon.xml with placeholder metadata
   - Includes base structure with <news> insertion point
 
-Update mode (subsequent releases):
+Update mode (existing addon.xml):
   - Reads existing addon.xml file
   - Updates version attribute using string replacement
   - Appends new release news before </news> insertion point
@@ -76,7 +76,7 @@ Release v{{ version }}
 {%- endif -%}
 
 {#- Render based on mode -#}
-{%- if ctx.changelog_mode == "update" and ctx.existing_addon_file -%}
+{%- if ctx.existing_addon_file -%}
   {#- Update mode: read existing, update version and news -#}
   {%- set existing_addon = ctx.existing_addon_file | read_file | safe -%}
   {%- set new_news = generate_news_content(latest_version) -%}

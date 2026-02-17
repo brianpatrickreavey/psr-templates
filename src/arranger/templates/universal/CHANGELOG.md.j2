@@ -1,13 +1,13 @@
 {#-
 Markdown changelog template with support for init and update modes.
 
-Init mode (first release):
+Init mode (no existing CHANGELOG.md):
   - Generates complete changelog with all releases from history
   - All versions included, newest first (reverse chronological order)
   - Insertion flag marker included at end for future updates
 
-Update mode (subsequent releases):
-  - Detects mode via ctx.changelog_mode context variable
+Update mode (existing CHANGELOG.md):
+  - Detects mode via ctx.existing_changelog_file context variable
   - Generates only the latest release(s)
   - Includes insertion flag marker to enable subsequent updates
   - PSR merges this with existing file content at insertion flag location
@@ -28,7 +28,7 @@ All notable changes to this project will be documented in this file.
 {%- set releases = ctx.history.released.values() | list -%}
 {%- set sorted_releases = releases | sort(attribute='version', reverse=True) -%}
 
-{%- if ctx.changelog_mode == "update" -%}
+{%- if ctx.existing_changelog_file -%}
   {#- Update mode: Generate only the latest release -#}
   {%- set latest_release = sorted_releases[0] if sorted_releases else none -%}
   {%- if latest_release -%}
