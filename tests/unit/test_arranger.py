@@ -1,9 +1,17 @@
 from pathlib import Path
-from unittest.mock import mock_open, patch, MagicMock
-import pytest
+from unittest.mock import MagicMock, mock_open, patch
 
-from arranger.run import load_config, arrange_templates, main, build_mappings
+import pytest
 from conftest import setup_fixture_and_templates_mocks
+
+from arranger.run import (
+    _parse_addon_xml,
+    _validate_addon_metadata_consistency,
+    arrange_templates,
+    build_mappings,
+    load_config,
+    main,
+)
 
 
 class TestLoadConfig:
@@ -594,6 +602,117 @@ def test_script_execution(mocker):
     mocker.patch("arranger.run.main")
     # For coverage, since main is tested
     pass
+
+
+class TestAddonXmlParsing:
+    """Tests for addon.xml metadata parsing and validation."""
+
+    def test_parse_addon_xml_nonexistent_file(self, tmp_path):
+        """Test that parsing returns None when file doesn't exist."""
+        addon_path = tmp_path / "nonexistent.xml"
+        result = _parse_addon_xml(addon_path)
+        assert result is None
+
+    def test_parse_addon_xml_success(self, tmp_path):
+        """Test successful parsing of addon.xml with metadata."""
+        addon_xml = tmp_path / "addon.xml"
+        addon_xml.write_text(
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.module.test" name="Test Module" version="1.0.0" provider-name="Test Author">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+        <import addon="xbmc.addon.requests" version="2.28.0"/>
+    </requires>
+    <extension point="xbmc.python.module" library="lib"/>
+</addon>"""
+        )
+
+        result = _parse_addon_xml(addon_xml)
+        assert result is not None
+        assert result["id"] == "script.module.test"
+        assert result["name"] == "Test Module"
+        assert result["version"] == "1.0.0"
+        assert result["provider-name"] == "Test Author"
+        assert len(result["requires"]) == 2
+        assert result["requires"][0]["addon"] == "xbmc.python"
+        assert result["requires"][0]["version"] == "3.0.0"
+        assert result["requires"][1]["addon"] == "xbmc.addon.requests"
+
+    def test_parse_addon_xml_no_requires(self, tmp_path):
+        """Test parsing addon.xml without requires section."""
+        addon_xml = tmp_path / "addon.xml"
+        addon_xml.write_text(
+            """<?xml version="1.0" encoding="UTF-8"?>
+<addon id="script.module.simple" name="Simple" version="0.1.0" provider-name="Author">
+    <extension point="xbmc.python.module" library="lib"/>
+</addon>"""
+        )
+
+        result = _parse_addon_xml(addon_xml)
+        assert result is not None
+        assert result["id"] == "script.module.simple"
+        assert result["requires"] == []
+
+    def test_parse_addon_xml_malformed(self, tmp_path, capsys):
+        """Test handling of malformed XML."""
+        addon_xml = tmp_path / "addon.xml"
+        addon_xml.write_text('<?xml version="1.0"?>\n<addon><unclosed>')
+
+        result = _parse_addon_xml(addon_xml)
+        assert result is None
+        captured = capsys.readouterr()
+        assert "Warning" in captured.err
+        assert "Failed to parse addon.xml" in captured.err
+
+    def test_validate_addon_metadata_consistency_no_existing_file(self, tmp_path):
+        """Test validation when addon.xml doesn't exist (new project)."""
+        # Should not raise any errors for new projects
+        _validate_addon_metadata_consistency(tmp_path, "script.module.example", None)
+
+    def test_validate_addon_metadata_consistency_match(self, tmp_path, capsys):
+        """Test validation when config and addon.xml metadata match."""
+        addon_dir = tmp_path / "script.module.example"
+        addon_dir.mkdir()
+        addon_xml = addon_dir / "addon.xml"
+        addon_xml.write_text(
+            """<?xml version="1.0" encoding="UTF-8"?>
+<addon id="script.module.example" name="Example" version="1.0.0" provider-name="Test">
+</addon>"""
+        )
+
+        config_metadata = {
+            "id": "script.module.example",
+            "name": "Example",
+            "provider-name": "Test",
+        }
+
+        _validate_addon_metadata_consistency(tmp_path, "script.module.example", config_metadata)
+        # Should not generate any warnings
+        captured = capsys.readouterr()
+        assert "Warning" not in captured.err
+
+    def test_validate_addon_metadata_consistency_mismatch(self, tmp_path, capsys):
+        """Test validation when config and addon.xml metadata mismatch."""
+        addon_dir = tmp_path / "script.module.example"
+        addon_dir.mkdir()
+        addon_xml = addon_dir / "addon.xml"
+        addon_xml.write_text(
+            """<?xml version="1.0" encoding="UTF-8"?>
+<addon id="script.module.example" name="Example" version="1.0.0" provider-name="Test">
+</addon>"""
+        )
+
+        config_metadata = {
+            "id": "script.module.old",
+            "name": "Old Example",
+            "provider-name": "Test",
+        }
+
+        _validate_addon_metadata_consistency(tmp_path, "script.module.example", config_metadata)
+        captured = capsys.readouterr()
+        assert "Warning" in captured.err
+        assert "Metadata mismatch" in captured.err
+        assert "id" in captured.err
 
 
 class TestPhase5Coverage:

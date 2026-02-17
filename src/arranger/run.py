@@ -34,11 +34,12 @@ Configuration (in pyproject.toml):
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, cast
-import tomllib
 import importlib.resources
 import sys
+import tomllib
+import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple, cast
 
 # Module constants (C3.6)
 TEMPLATES_PACKAGE = "arranger.templates"
@@ -539,6 +540,105 @@ def _arrange_single_template(
         raise type(e)(str(e)) from e
 
 
+def _parse_addon_xml(addon_xml_path: Path) -> Optional[Dict[str, Any]]:
+    """
+    Parse addon.xml file and extract metadata.
+
+    Extracts the following attributes from the root <addon> element:
+      - id: addon identifier
+      - name: human-readable addon name
+      - version: current version
+      - provider-name: addon provider/author name
+
+    Also extracts all <import> elements from <requires> for tracking dependencies.
+
+    Args:
+        addon_xml_path: Path to addon.xml file to parse.
+
+    Returns:
+        Dictionary with keys: id, name, version, provider-name, requires (list of dicts).
+        Returns None if file doesn't exist or parsing fails.
+    """
+    if not addon_xml_path.exists():
+        return None
+
+    try:
+        tree = ET.parse(addon_xml_path)
+        root = tree.getroot()
+
+        # Extract addon attributes
+        metadata: Dict[str, Any] = {
+            "id": root.get("id"),
+            "name": root.get("name"),
+            "version": root.get("version"),
+            "provider-name": root.get("provider-name"),
+            "requires": [],
+        }
+
+        # Extract requires/import elements
+        requires_elem = root.find("requires")
+        if requires_elem is not None:
+            for import_elem in requires_elem.findall("import"):
+                import_info = {"addon": import_elem.get("addon"), "version": import_elem.get("version")}
+                metadata["requires"].append(import_info)
+
+        return metadata
+    except ET.ParseError as e:
+        print(
+            f"Warning: Failed to parse addon.xml at {addon_xml_path}: {str(e)}\n"
+            "Proceeding without metadata validation.",
+            file=sys.stderr,
+        )
+        return None
+    except Exception as e:
+        print(
+            f"Warning: Unexpected error reading addon.xml at {addon_xml_path}: {str(e)}\n"
+            "Proceeding without metadata validation.",
+            file=sys.stderr,
+        )
+        return None
+
+
+def _validate_addon_metadata_consistency(
+    fixture_dir: Path, kodi_project_name: str, config_metadata: Optional[Dict[str, Any]]
+) -> None:
+    """
+    Check for consistency between pyproject.toml config and existing addon.xml.
+
+    If both config and existing addon.xml specify metadata, compare them and warn
+    on mismatches. Uses existing addon.xml values as authoritative (config is ignored).
+
+    Args:
+        fixture_dir: Root directory of fixture/project.
+        kodi_project_name: Project name from config or CLI arg.
+        config_metadata: Addon metadata from [tool.arranger] config, if present.
+    """
+    # Determine expected addon.xml path
+    addon_xml_path = fixture_dir / kodi_project_name / "addon.xml"
+
+    # Parse existing addon.xml if it exists
+    existing_metadata = _parse_addon_xml(addon_xml_path)
+
+    # Only validate if both config and file exist
+    if config_metadata and existing_metadata:
+        mismatches = []
+
+        for key in ["id", "name", "provider-name"]:
+            config_val = config_metadata.get(key)
+            existing_val = existing_metadata.get(key)
+
+            if config_val and existing_val and config_val != existing_val:
+                mismatches.append(f"  {key}: config='{config_val}' vs addon.xml='{existing_val}'")
+
+        if mismatches:
+            print(
+                f"Warning: Metadata mismatch between [tool.arranger] config and {addon_xml_path}:\n"
+                + "\n".join(mismatches)
+                + f"\nUsing values from {addon_xml_path}. Config values will be ignored.",
+                file=sys.stderr,
+            )
+
+
 def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: bool = True) -> None:
     """
     Place templates into the fixture directory according to mappings.
@@ -590,7 +690,7 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
     # Import templates package
     try:
         templates: Any = importlib.resources.files(TEMPLATES_PACKAGE)
-    except (ModuleNotFoundError, ImportError) as e:
+    except ImportError as e:
         raise RuntimeError(
             f"Failed to import template package '{TEMPLATES_PACKAGE}':\n"
             f"{str(e)}\n\n"
@@ -607,9 +707,9 @@ def arrange_templates(fixture_dir: Path, mappings: Dict[str, str], override: boo
 
 def main() -> None:
     """
-    Main entry point for the arranger CLI.
+    Orchestrate the template arrangement workflow.
 
-    Orchestrates the template arrangement workflow:
+    This is the main CLI entry point that:
     1. Loads [tool.arranger] configuration from pyproject.toml
     2. Parses command-line arguments for project type and options
     3. Builds source-to-destination template mappings
@@ -677,6 +777,13 @@ def main() -> None:
         pyproject_path = Path("pyproject.toml")
         config = load_config(pyproject_path)
         mappings = build_mappings(config, args)
+
+        # Validate addon metadata consistency if kodi addon is configured
+        kodi_project_name = config.get("kodi-project-name")
+        if args.kodi_addon or config.get("use-default-kodi-addon-structure"):
+            if kodi_project_name:
+                _validate_addon_metadata_consistency(Path("."), kodi_project_name, None)
+
         arrange_templates(Path("."), mappings, override=args.override)
         print("✓ Template structure built successfully.")
     except FileNotFoundError as e:
