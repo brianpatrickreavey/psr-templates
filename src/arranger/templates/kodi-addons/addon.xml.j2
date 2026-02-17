@@ -3,17 +3,32 @@ Kodi addon.xml template with support for init and update modes.
 
 Init mode (no existing addon.xml):
   - Generates complete addon.xml with placeholder metadata
-  - Includes base structure with <news> insertion point
+  - id="script.module.placeholder", name="Placeholder", etc.
+  - Includes <news> section with current release notes
+  - All metadata can be manually updated in fixture or replaced in subsequent releases
 
 Update mode (existing addon.xml):
   - Reads existing addon.xml file
-  - Updates version attribute using string replacement
-  - Appends new release news before </news> insertion point
-  - Preserves all existing metadata and structure
+  - Preserves ALL metadata (id, name, provider-name, summary, description, requires, etc.)
+  - Updates version attribute to current release version
+  - Updates <news> section with ONLY latest release (NOT cumulative)
+  - If <news> doesn't exist, creates it before </extension>
+  - PSR uses <news> as insertion point to merge updated file content
 
-Insertion point:
-  The <news> tag serves as the insertion point.
-  PSR splits on <news> and reassembles with new content before </news>.
+News behavior:
+  - NOT cumulative: only contains current release's changes/features
+  - Single block per release: <news>Release vX.Y.Z ... entries ...</news>
+  - Latest version always shows current release's news only
+  - Older releases archived in git history if news change is needed
+
+Example evolution:
+  v0.1.0 (init):   complete addon.xml with placeholder id, <news> with v0.1.0 content
+  v0.2.0 (update): same metadata + id from v0.1.0, version bumped to 0.2.0, <news> with v0.2.0 content only
+  v1.0.0 (update): preserves all v0.2.0 metadata, version bumped to 1.0.0, <news> with v1.0.0 content only
+
+Context variables:
+  - ctx.existing_addon_file: Path to existing addon.xml (if update mode), None if init mode
+  - ctx.history.released: Dict of all releases and their commit data
 -#}
 
 {#- Macro: Generate news content for a release -#}
@@ -77,53 +92,12 @@ Release v{{ version }}
 
 {#- Render based on mode -#}
 {%- if ctx.existing_addon_file -%}
-  {#- Update mode: read existing, update version and news -#}
-  {%- set existing_addon = ctx.existing_addon_file | read_file | safe -%}
+  {#- Update mode: Generate ONLY new news section (PSR merges with existing file at <news> insertion point) -#}
   {%- set new_news = generate_news_content(latest_version) -%}
-  {#- Find news section -#}
-  {%- set news_start = existing_addon.find('<news>') -%}
-  {%- set news_end = existing_addon.find('</news>') -%}
-  {%- if news_start >= 0 and news_end > news_start -%}
-    {#- Extract before and after news -#}
-    {%- set before_news = existing_addon[:news_start] -%}
-    {%- set after_news = existing_addon[news_end + 7:] -%}
-    {#- Find and update version in the <addon ...> element (search backwards from before news end) -#}
-    {%- set addon_start = before_news.rfind('<addon') -%}
-    {%- if addon_start >= 0 -%}
-      {%- set addon_tag_end = before_news.find('>', addon_start) -%}
-      {%- if addon_tag_end > addon_start -%}
-        {%- set addon_tag = before_news[addon_start:addon_tag_end + 1] -%}
-        {%- set before_addon = before_news[:addon_start] -%}
-        {%- set after_addon = before_news[addon_tag_end + 1:] -%}
-        {#- Find version= within the addon tag -#}
-        {%- set version_in_tag_start = addon_tag.rfind('version="') -%}
-        {%- if version_in_tag_start >= 0 -%}
-          {%- set quote_after_version = addon_tag.find('"', version_in_tag_start + 9) -%}
-          {%- if quote_after_version > version_in_tag_start -%}
-            {%- set updated_addon_tag = addon_tag[:version_in_tag_start + 9] ~ latest_version ~ addon_tag[quote_after_version:] -%}
-            {%- set updated = before_addon ~ updated_addon_tag ~ after_addon -%}
-          {%- else -%}
-            {%- set updated = before_news -%}
-          {%- endif -%}
-        {%- else -%}
-          {%- set updated = before_news -%}
-        {%- endif -%}
-      {%- else -%}
-        {%- set updated = before_news -%}
-      {%- endif -%}
-    {%- else -%}
-      {%- set updated = before_news -%}
-    {%- endif -%}
-    {{- updated -}}
     <news>
 {{- new_news | indent(8) }}
     </news>
-    {{- after_news -}}
-  {%- else -%}
-    {#- Fallback if news section not found -#}
-    {{- render_complete_addon(latest_version) -}}
-  {%- endif -%}
 {%- else -%}
-  {#- Init mode: generate complete addon.xml -#}
+  {#- Init mode: Generate complete addon.xml with placeholder metadata -#}
   {{- render_complete_addon(latest_version) -}}
 {%- endif -%}

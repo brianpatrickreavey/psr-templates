@@ -18,7 +18,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Union
 
-from jinja2 import Environment, FileSystemLoader
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))  # noqa: E402
+
+from jinja2 import Environment, FileSystemLoader  # noqa: E402
+
+# Import custom Jinja2 filters from arranger package
+from arranger.jinja_filters import FILTERS as JINJA_FILTERS  # noqa: E402
 
 
 def run_git(cmd: Union[str, list[str]], cwd: Path) -> str:
@@ -128,9 +133,8 @@ def render_templates(releases: dict[str, Any], output_dir: Path) -> None:
     fixture_dir = Path("../psr-templates-fixture")
 
     # Custom Jinja2 filter for read_file
-    def read_file_filter(file_path: str) -> str:
-        """Read file contents for use in templates."""
-        return Path(file_path).read_text()
+    # Use filters from arranger package (read_file, read_file_or_empty, file_exists)
+    # Note: these are also registered globally via arranger.__init__ monkey-patching
 
     # Sort versions to render in order (0.1.0, then 0.2.0, etc.)
     sorted_versions = sorted(releases.keys(), key=lambda v: tuple(map(int, v.split("."))))
@@ -145,9 +149,14 @@ def render_templates(releases: dict[str, Any], output_dir: Path) -> None:
         version_dir.mkdir(exist_ok=True)
 
         # Determine if this is first release (init) or subsequent (update)
+        # For addon.xml: if fixture has it, v0.1.0 reads from fixture (update mode)
+        #                otherwise v0.1.0 generates from scratch (init mode)
         is_first_release = i == 0
-        addon_xml_mode = "init" if is_first_release else "update"
-        changelog_mode = "init" if is_first_release else "update"
+        fixture_addon_exists = (fixture_dir / "script.module.example" / "addon.xml").exists()
+        addon_xml_mode = "init" if (is_first_release and not fixture_addon_exists) else "update"
+        # For changelog: only init if first release AND no existing changelog
+        fixture_changelog_exists = (fixture_dir / "CHANGELOG.md").exists()
+        changelog_mode = "init" if (is_first_release and not fixture_changelog_exists) else "update"
 
         # Set up files for rendering
         addon_xml_path = version_dir / "addon.xml"
@@ -181,29 +190,60 @@ def render_templates(releases: dict[str, Any], output_dir: Path) -> None:
         print(f"  Rendering v{version} | addon.xml: {addon_xml_mode} | CHANGELOG.md: {changelog_mode}")
 
         # Mock PSR context with only releases up to this point
-        # For init mode, pass the fixture addon file so template can extract metadata
-        init_addon_file = None
-        if addon_xml_mode == "init" and (fixture_dir / "script.module.example" / "addon.xml").exists():
-            init_addon_file = str(fixture_dir / "script.module.example" / "addon.xml")
+        # For addon.xml update mode: pass the source file (fixture for v0.1.0, previous release otherwise)
+        addon_source = None
+        if addon_xml_mode == "update":
+            if is_first_release:
+                # For v0.1.0 in update mode, read from fixture
+                addon_source = str(fixture_dir / "script.module.example" / "addon.xml")
+            else:
+                # For subsequent releases, read from previous release
+                addon_source = str(addon_xml_path)
+
+        # For changelog update mode: pass the source file similarly
+        changelog_source = None
+        if changelog_mode == "update":
+            changelog_source = str(changelog_path)
 
         ctx = SimpleNamespace(
             changelog_mode=changelog_mode,
             history=SimpleNamespace(released=cumulative_releases.copy()),
-            existing_addon_file=str(addon_xml_path) if addon_xml_mode == "update" else init_addon_file,
-            existing_changelog_file=str(changelog_path) if changelog_mode == "update" else None,
+            existing_addon_file=addon_source,
+            existing_changelog_file=changelog_source,
         )
 
         # Render addon.xml.j2
         env = Environment(loader=FileSystemLoader(templates_dir / "kodi-addons"))
-        env.filters["read_file"] = read_file_filter
+        env.filters.update(JINJA_FILTERS)  # Register all custom filters
         addon_template = env.get_template("addon.xml.j2")
         addon_output = addon_template.render(ctx=ctx)
+
+        # For update mode: merge with existing addon.xml at <news> insertion point
+        if addon_xml_mode == "update" and ctx.existing_addon_file:
+            # Read the source file (fixture for v0.1.0, previous release for v0.2.0+)
+            existing_addon = Path(ctx.existing_addon_file).read_text()
+
+            # Extract just the <news>...</news> section from the new output
+            news_start = addon_output.find("<news>")
+            news_end = addon_output.find("</news>")
+            if news_start >= 0 and news_end > news_start:
+                news_section = addon_output[news_start : news_end + 7]  # Include </news>
+
+                # Find and replace the <news> section in existing addon.xml
+                existing_news_start = existing_addon.find("<news>")
+                existing_news_end = existing_addon.find("</news>")
+                if existing_news_start >= 0 and existing_news_end > existing_news_start:
+                    # Replace the old news section with new one
+                    addon_output = (
+                        existing_addon[:existing_news_start] + news_section + existing_addon[existing_news_end + 7 :]
+                    )
+
         (version_dir / "addon.xml").write_text(addon_output)
         print(f"✓ Rendered addon.xml for v{version}")
 
         # Render CHANGELOG.md.j2
         env = Environment(loader=FileSystemLoader(templates_dir / "universal"))
-        env.filters["read_file"] = read_file_filter
+        env.filters.update(JINJA_FILTERS)  # Register all custom filters
         changelog_template = env.get_template("CHANGELOG.md.j2")
         changelog_output = changelog_template.render(ctx=ctx)
 

@@ -4,18 +4,24 @@ Markdown changelog template with support for init and update modes.
 Init mode (no existing CHANGELOG.md):
   - Generates complete changelog with all releases from history
   - All versions included, newest first (reverse chronological order)
-  - Insertion flag marker included at end for future updates
+  - Insertion flag marker placed right after header for future updates
 
 Update mode (existing CHANGELOG.md):
   - Detects mode via ctx.existing_changelog_file context variable
-  - Generates only the latest release(s)
-  - Includes insertion flag marker to enable subsequent updates
-  - PSR merges this with existing file content at insertion flag location
+  - Generates only the latest release
+  - Includes insertion flag marker after new release
+  - PSR inserts new content before the flag, pushing old content down
+  - Result: newest releases always appear first, all history preserved
 
-Insertion flag:
-  PSR's default Markdown insertion flag is: <!-- version list -->
-  This marker tells PSR where to insert new release content.
-  Each release in update mode includes this marker below it.
+Insertion flag behavior:
+  Marker: <!-- version list -->
+  Position: After newest release content, before older releases
+  Effect: New releases get inserted here, pushing older releases down
+
+Example evolution:
+  v0.1.0 (init):   # Changelog ... <!-- version list --> ## v0.1.0 ...
+  v0.2.0 (update): # Changelog ... ## v0.2.0 ... <!-- version list --> ## v0.1.0 ...
+  v1.0.0 (update): # Changelog ... ## v1.0.0 ... <!-- version list --> ## v0.2.0 ... ## v0.1.0 ...
 
 Release sections:
   Commits organized by type: features, bug fixes, performance, documentation, refactoring, testing, chores
