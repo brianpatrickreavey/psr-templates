@@ -111,35 +111,40 @@
   - More accurately reflects its use as a directory path, not project name
   - Updated across: config validation, variable names, documentation, tests, fixture, tools
   - This is a breaking change (acceptable at this stage of development)
-- [ ] Review [src/arranger/templates/kodi-addons/addon.xml.j2](src/arranger/templates/kodi-addons/addon.xml.j2)
-- [ ] Add conditional logic for changelog_mode detection:
-  - **Init mode**: Generate complete addon.xml from scratch
-  - **Update mode**: Read existing file, update version & news, preserve metadata
-- [ ] Implement semantic version sorting (defensive, not relying on dict key order):
-  - Replace `versions[0]` with explicit sort logic
-  - Ensure latest semver is reliably selected
-- [ ] **Update mode logic**:
-  - Read existing addon.xml using `{{ ctx.repo_root }}/{{ kodi_addon_directory }}/addon.xml` path
-  - Use `read_file` filter to load existing XML
-  - Parse XML to extract id, name, provider-name, requires (preserve exactly)
-  - Replace version attribute with PSR-determined version
-  - Replace news section with latest release only (trim all older releases)
-  - Output complete valid XML
-- [ ] **Init mode logic**:
-  - Generate complete XML structure with sensible defaults
-  - Use metadata from context if available
-  - Version from latest release
-  - News with latest release notes
-- [ ] Validate generated XML is well-formed
-- [ ] Write unit tests for both modes, version sorting, news trimming
+- [ ] Enhance [src/arranger/templates/kodi-addons/addon.xml.j2](src/arranger/templates/kodi-addons/addon.xml.j2):
+  - Detect mode via `ctx.changelog_mode` (init vs update)
+  - Use PSR's native approach for version updates
+
+- [ ] **Version attribute handling**:
+  - Version updates handled by PSR's `version_variables` config (pattern matching)
+  - No version logic in template itself
+  - Example config: `version_variables = ["script/module/name/addon.xml:version:nf"]`
+
+- [ ] **Init mode** (file doesn't exist, first release):
+  - Generate complete barebones addon.xml
+  - Use placeholders: id="script.module.placeholder", name="Placeholder", provider-name="Unknown"
+  - Include minimal structure: requires, extension (xbmc.python.module), metadata
+  - Include latest release news
+
+- [ ] **Update mode** (file exists, iterative releases):
+  - Detect mode via `{% if ctx.changelog_mode == "update" %}`
+  - Preserve existing XML structure (id, name, provider-name, requires untouched)
+  - Update only: version (via version_variables), news (via template)
+  - News: Latest release notes only (no history, within `<news>` tags)
+
+- [ ] **Release notes formatting**:
+  - Extract latest release from `ctx.history.released` (semantic version sort)
+  - Format: version header + commit messages grouped by type (feat/fix/perf/etc)
+  - Filter previous releases (update mode only displays latest)
 
 **Acceptance Criteria**:
-- Template produces valid XML in both modes
-- Version always matches PSR-determined version
-- News section contains only latest release (no history)
-- Metadata (id, name, requires) preserved in update mode
-- Version mismatches logged as warnings
-- Config key refactored consistently across codebase
+- Template correctly detects init vs update mode via `ctx.changelog_mode`
+- Init mode generates valid barebones addon.xml with placeholders
+- Update mode generates update-compatible addon.xml (preserves existing metadata)
+- News section contains only latest release (no prior version history)
+- Version attribute updated by PSR's version_variables (not template)
+- All 63+ unit tests pass, pre-commit hooks pass
+- Template documented with mode behavior and version_variables example
 
 ---
 

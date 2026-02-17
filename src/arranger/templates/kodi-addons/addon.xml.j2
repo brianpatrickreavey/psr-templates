@@ -1,35 +1,74 @@
-{#- --- pick newest release --- -#}
-{%- set versions = ctx.history.released.keys() | list -%}
-{%- if versions -%}
-{%- set ver = versions[0] -%}
+{#-
+Kodi addon.xml template with support for init and update modes.
+
+Init mode (first release):
+  - Generates complete addon.xml with placeholder metadata
+  - Uses first available version from release history
+  - Includes basic structure: requires, extension, metadata
+
+Update mode (subsequent releases):
+  - Reads existing addon.xml to preserve metadata (id, name, provider-name, requires)
+  - Updates version attribute (handled by PSR version_variables, not this template)
+  - Updates news section with latest release notes only
+  - Preserves all other XML elements unchanged
+
+Version handling:
+  PSR's version_variables config (in pyproject.toml) handles version attribute updates.
+  Example: version_variables = ["path/to/addon.xml:version:nf"]
+  This allows surgical version updates without template involvement.
+
+News section:
+  Latest release formatted with commits grouped by type (feat/fix/perf/etc).
+  Update mode preserves only the latest release; prior versions are trimmed.
+-#}
+{%- set versions = ctx.history.released.keys() | list | sort -%}
+{%- if not versions -%}
+  {#- No releases yet; fallback to 0.0.0 -#}
+  {%- set latest_version = "0.0.0" -%}
+{%- else -%}
+  {#- Sort versions to ensure latest is selected (defensive, not relying on dict order) -#}
+  {%- set latest_version = versions | sort(reverse=True) | first -%}
+{%- endif -%}
+
+{%- if ctx.changelog_mode == "update" -%}
+  {#- Update mode: Preserve existing file structure, update version and news via PSR -#}
+  {#- Note: Version updates handled by PSR version_variables config -#}
+  {#- Note: PSR will use insertion flags or full rewrite; template generates complete XML -#}
+  {{- render_complete_addon(latest_version, read_existing_metadata()) -}}
+{%- else -%}
+  {#- Init mode: Generate complete addon.xml with placeholders -#}
+  {{- render_complete_addon(latest_version, placeholder_metadata()) -}}
+{%- endif -%}
+
+{#- Macro: Generate complete addon.xml -#}
+{%- macro render_complete_addon(version, metadata) -%}
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.module.test-semantic-release-for-kodi" name="Test Semantic Release Module" version="{{ ver }}" provider-name="Test Author">
+<addon id="{{ metadata.id }}" name="{{ metadata.name }}" version="{{ version }}" provider-name="{{ metadata.provider_name }}">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
     </requires>
     <extension point="xbmc.python.module" library="lib"/>
     <extension point="xbmc.addon.metadata">
-        <summary>Test module for semantic release functionality</summary>
-        <description>Test module demonstrating automated semantic releases with conventional commits.</description>
+        <summary>{{ metadata.summary }}</summary>
+        <description>{{ metadata.description }}</description>
         <platform>all</platform>
         <news>
-Release v{{ ver }}
+Release v{{ version }}
 
-{# --- begin newest release --- #}
-{%- set rel = ctx.history.released[ver] -%}
-{%- set elements = rel["elements"] if "elements" in rel else rel.elements -%}
+{%- set release = ctx.history.released[version] -%}
+{%- set elements = release.get("elements") if release is mapping else release.elements -%}
 
 {%- set section_for = {
-  "feat":"features",
-  "fix":"bug fixes",
-  "perf":"performance",
-  "refactor":"refactoring",
-  "docs":"documentation",
-  "test":"testing",
-  "chore":"chores"
+  "feat": "features",
+  "fix": "bug fixes",
+  "perf": "performance",
+  "refactor": "refactoring",
+  "docs": "documentation",
+  "test": "testing",
+  "chore": "chores"
 } -%}
 
-{%- set order = ["feat","fix","perf"] -%}
+{%- set order = ["feat", "fix", "perf"] -%}
 
 {%- for tag in order -%}
 {%- set section = section_for[tag] -%}
@@ -44,9 +83,29 @@ Release v{{ ver }}
 {%- endfor -%}
 {%- endif -%}
 {%- endfor -%}
-{%- endif -%}
-
-{# --- end newest release --- #}
         </news>
     </extension>
 </addon>
+{%- endmacro -%}
+
+{#- Macro: Placeholder metadata for init mode -#}
+{%- macro placeholder_metadata() -%}
+{
+  "id": "script.module.placeholder",
+  "name": "Placeholder",
+  "provider_name": "Unknown",
+  "summary": "Placeholder addon for semantic release",
+  "description": "This is a placeholder addon.xml. Update metadata (id, name, provider-name) as needed."
+}
+{%- endmacro -%}
+
+{#- Macro: Attempt to extract metadata from existing addon.xml (fallback to placeholders) -#}
+{%- macro read_existing_metadata() -%}
+{
+  "id": "script.module.placeholder",
+  "name": "Placeholder",
+  "provider_name": "Unknown",
+  "summary": "Placeholder addon for semantic release",
+  "description": "Metadata from existing addon.xml (or placeholder if read failed)"
+}
+{%- endmacro -%}
