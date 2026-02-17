@@ -103,7 +103,7 @@
 ---
 
 ### Step 4: Enhance addon.xml.j2 template for update mode + refactor config key
-**Status**: 🔄 IN PROGRESS
+**Status**: ✅ COMPLETED
 **Objective**: Update template to support both init and update modes, refactor confusing config key name
 
 **Tasks**:
