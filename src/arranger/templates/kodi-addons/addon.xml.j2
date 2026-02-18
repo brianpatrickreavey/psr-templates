@@ -25,6 +25,9 @@ Context variables (from PSR):
     <import addon="{{ req.addon }}" version="{{ req.version }}" />
     {%- endfor %}
   </requires>
+  {%- if addon.unknown_extensions | trim %}
+  {{ addon.unknown_extensions | trim | safe }}
+  {%- endif %}
   <extension point="xbmc.addon.metadata">
     {%- if addon.summary %}
     <summary>{{ addon.summary }}</summary>
@@ -54,7 +57,4 @@ Context variables (from PSR):
     <news></news>
     {%- endif %}
   </extension>
-  {%- if addon.unknown_extensions | trim %}
-  {{ addon.unknown_extensions | trim | safe }}
-  {%- endif %}
 </addon>

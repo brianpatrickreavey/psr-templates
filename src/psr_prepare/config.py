@@ -28,7 +28,7 @@ class AddonConfig:
         """Validate addon config, return list of errors."""
         errors = []
         if not self.id:
-            errors.append("addon.id is required")
+            errors.append("addon.id is required (e.g., id = 'script.module.example')")
         return errors
 
 
@@ -49,6 +49,15 @@ class ChangelogConfig:
         errors = []
         if self.mode not in ("init", "update"):
             errors.append(f"changelog.mode must be 'init' or 'update', got '{self.mode}'")
+        if not isinstance(self.news_types, dict):
+            errors.append(f"changelog.news_types must be a dict, got {type(self.news_types).__name__}")
+        else:
+            for commit_type, label in self.news_types.items():
+                if not isinstance(label, str):
+                    errors.append(
+                        f"changelog.news_types['{commit_type}'] must be a string, "
+                        f"got {type(label).__name__}"
+                    )
         return errors
 
 
