@@ -46,6 +46,26 @@ class AddonXmlData:
             "news": self.news,
         }
 
+    def get_unknown_extensions_xml(self) -> str:
+        """Extract unknown (non-metadata) extensions as XML strings.
+
+        Returns:
+            Concatenated XML strings of unknown extensions, or empty string if none.
+        """
+        if not self.root:
+            return ""
+
+        unknown_extensions = []
+        for ext in self.root.findall("extension"):
+            point = ext.get("point")
+            # Skip the metadata extension (it's handled by template)
+            if point and point != "xbmc.addon.metadata":
+                # Serialize this extension element as XML
+                xml_str = ET.tostring(ext, encoding="unicode")
+                unknown_extensions.append(xml_str)
+
+        return "".join(unknown_extensions)
+
 
 def parse_addon_xml(addon_xml_path: Path) -> AddonXmlData:
     """Parse addon.xml file.
@@ -240,5 +260,11 @@ def reconcile_addon(
         merged["news"] = xml_data.news
     else:
         merged["news"] = ""
+
+    # Preserve unknown extensions from XML
+    if xml_data:
+        merged["unknown_extensions"] = xml_data.get_unknown_extensions_xml()
+    else:
+        merged["unknown_extensions"] = ""
 
     return merged, warnings

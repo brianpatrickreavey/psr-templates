@@ -40,6 +40,7 @@ def write_addon_context(
         "requires": addon_data.get("requires", []),
         "news": addon_data.get("news", ""),
         "news_types": news_types or {},
+        "unknown_extensions": addon_data.get("unknown_extensions", ""),
     }
 
     with open(addon_json, "w") as f:

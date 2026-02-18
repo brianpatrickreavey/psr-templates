@@ -13,6 +13,7 @@ Context variables (from psr_prepare/addon.json):
   - addon.disclaimer: Disclaimer
   - addon.requires: Array of required addons with versions
   - addon.news_types: Commit type → Kodi label mapping (from changelog config)
+  - addon.unknown_extensions: Serialized XML of extensions not managed by template
 
 Context variables (from PSR):
   - latest_release: Release object with version, tagged_date, and elements
@@ -53,4 +54,7 @@ Context variables (from PSR):
     <news></news>
     {%- endif %}
   </extension>
+  {%- if addon.unknown_extensions | trim %}
+  {{ addon.unknown_extensions | trim | safe }}
+  {%- endif %}
 </addon>
