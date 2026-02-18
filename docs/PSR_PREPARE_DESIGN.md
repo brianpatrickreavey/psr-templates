@@ -709,12 +709,29 @@ This mapping is:
 - News only includes descriptions (breaking_descriptions not included)
 
 ### Phase 2
-- [ ] Strict mode (--strict flag with exit codes)
-- [ ] Better error messages
-- [ ] Dry run mode
-- [ ] Extended logging options
-- [ ] Configuration validation improvements
-- [ ] Extended logging
+- [x] Strict mode (--strict flag with exit codes)
+- [x] Better error messages
+- [x] Dry run mode (--dry-run flag)
+- [x] Extended logging options (--quiet / -q flag)
+- [x] Configuration validation improvements
+
+**Status:** Phase 2 COMPLETE ✓
+
+**Features Implemented:**
+- Exit code 3 on reconciliation conflicts (addon metadata or requires version)
+- --dry-run flag shows operations without making changes
+- --quiet flag suppresses INFO messages (warnings/errors only)
+- --debug flag provides detailed execution information
+- Enhanced validation of addon.id, changelog.mode, news_types format
+- Improved error messages with helpful context and suggestions
+- Fixed double reconcile_addon() call in CLI
+
+**Testing Results:**
+- Verified strict mode exits with code 3 on actual conflicts
+- Verified --dry-run shows [DRY RUN] prefixed operations without executing
+- Verified --quiet suppresses info messages but shows warnings/errors
+- Verified normal mode continues with warnings (exit 0)
+- Full end-to-end pipeline works correctly after all improvements
 
 ### Phase 3
 - [ ] Schema validation
