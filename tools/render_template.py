@@ -47,17 +47,6 @@ class MockParsedCommit(NamedTuple):
     breaking_descriptions: list[str]
 
 
-def hello_world_filter(value: str = "") -> str:
-    """Return a simple greeting message.
-
-    Args:
-        value: The piped value (ignored in this demo)
-
-    Returns:
-        A greeting message
-    """
-    return "Hello, World!"
-
 
 def build_mock_release_history(phase: int = 0) -> ReleaseHistory:
     """Build a mock ReleaseHistory using PSR's Version objects.
@@ -175,9 +164,6 @@ def render_templates(
 
     # Register arranger's custom filters to PSR's environment
     env.filters.update(ARRANGER_FILTERS)
-
-    # Register custom demo filter
-    env.filters["hello_world"] = hello_world_filter
 
     # Build changelog context using PSR's actual ChangelogContext
     ctx = ChangelogContext(

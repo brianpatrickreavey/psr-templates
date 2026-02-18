@@ -221,33 +221,6 @@ When templates are rendered by PSR itself (not this mock tool), additional filte
 - `ctx.changelog_insertion_flag` - For update mode splitting
 
 Note: These PSR-specific filters require the full PSR environment and won't appear in this discovery output.
-
-## Custom Python Filters Demo
-
-Custom Python functions can be registered as Jinja2 filters to add application-specific logic:
-
-**Demo Custom Filter:**
-- `hello_world()` - A simple demonstration filter that returns a greeting
-
-**Example Usage:**
-```jinja
-{{ "" | hello_world }}
-```
-
-**Output:**
-```
-{{ "" | hello_world }}
-```
-
-This demonstrates that custom Python code can be:
-1. Defined as functions
-2. Registered with the Jinja2 environment
-3. Called from templates like any built-in filter
-
-You can create more complex filters for:
-- Version string transformations
-- File format conversions
-- Custom text processing
 - Dynamic content generation
 
 ## Summary of Discovered Information
