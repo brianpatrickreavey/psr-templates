@@ -97,40 +97,6 @@ Element types available: {{ release.elements.keys() | list | join(', ') }}
 
 {%- endfor %}
 
-## File Reading Filters Demo
-
-The arranger provides custom filters for reading files in templates:
-
-**Available Filters:**
-- `read_file(path)` - Read file, error if missing
-- `read_file_or_empty(path)` - Read file, empty string if missing
-- `file_exists(path)` - Check if file exists (returns boolean)
-
-**Demo File Contents:**
-
-Example reading from `docs/DISCOVERY_SAMPLE.md`:
-
-```jinja
-{%- set sample_file = "docs/DISCOVERY_SAMPLE.md" -%}
-{%- if sample_file | file_exists %}
-{{ sample_file | read_file }}
-{%- else %}
-(file not found)
-{%- endif %}
-```
-
-**Output:**
-{%- set sample_file = "docs/DISCOVERY_SAMPLE.md" -%}
-{%- if sample_file | file_exists %}
-
-{{ sample_file | read_file }}
-
-{%- else %}
-
-(File not found - ensure running from psr-templates root directory)
-
-{%- endif %}
-
 ## String Filtering & Text Processing
 
 Jinja2 allows calling Python methods and filters directly on strings:
