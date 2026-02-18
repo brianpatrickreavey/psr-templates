@@ -93,7 +93,9 @@ Examples:
         project_root = args.config.parent if args.config.is_absolute() else Path.cwd()
         templates_dir = project_root / "templates"
         context_dir = project_root / ".psr_context"
-        source_templates_dir = Path(__file__).parent.parent.parent / "src" / "arranger" / "templates"
+
+        # Templates are now bundled with psr_prepare package
+        source_templates_dir = Path(__file__).parent / "templates"
 
         logger.info(f"Project root: {project_root}")
         logger.info(f"Source templates: {source_templates_dir}")
@@ -122,9 +124,7 @@ Examples:
 
             # 4. Reconcile addon config
             try:
-                addon_merged, addon_warnings = reconcile_addon(
-                    addon_xml_data, config.addon, strict=args.strict
-                )
+                addon_merged, addon_warnings = reconcile_addon(addon_xml_data, config.addon, strict=args.strict)
                 warnings.extend(addon_warnings)
             except ValueError as e:
                 logger.error(f"Reconciliation error: {e}")

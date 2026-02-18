@@ -22,7 +22,7 @@ find = {where = ["src"]}
 "" = "src"
 
 [tool.setuptools.package-data]
-arranger = ["templates/**/*"]
+psr_prepare = ["templates/**/*"]
 
 [dependency-groups]
 dev = ["pytest", "pytest-mock", "pytest-cov", "flake8", "flake8-pyproject", "black", "python-semantic-release>=10.5.3", "mypy", "pre-commit"]

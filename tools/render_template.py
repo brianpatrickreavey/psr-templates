@@ -297,8 +297,8 @@ Examples:
         "--template-dir",
         "-d",
         type=Path,
-        default=Path("src/arranger/templates"),
-        help="Directory containing .j2 templates (default: src/arranger/templates)",
+        default=Path("src/psr_prepare/templates"),
+        help="Directory containing .j2 templates (default: src/psr_prepare/templates)",
     )
     parser.add_argument(
         "--target-dir",

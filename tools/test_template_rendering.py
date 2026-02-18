@@ -129,7 +129,7 @@ def build_mock_release_history(repo_path: Path) -> dict[str, Any]:
 def render_templates(releases: dict[str, Any], output_dir: Path) -> None:
     """Render both templates for each release sequentially, building up history."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    templates_dir = Path("src/arranger/templates")
+    templates_dir = Path("src/psr_prepare/templates")
     fixture_dir = Path("../psr-templates-fixture")
 
     # Custom Jinja2 filter for read_file

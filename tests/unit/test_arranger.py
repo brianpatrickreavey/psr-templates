@@ -1081,7 +1081,7 @@ class TestTemplateRendering:
         """Test addon.xml.j2 has valid Jinja2 syntax."""
         from jinja2 import Environment, FileSystemLoader
 
-        env = Environment(loader=FileSystemLoader("src/arranger/templates/kodi-addons"))
+        env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/kodi-addons"))
         template = env.get_template("addon.xml.j2")
 
         # Template compiles if syntax is valid
@@ -1092,7 +1092,7 @@ class TestTemplateRendering:
         from jinja2 import Environment, FileSystemLoader
         from types import SimpleNamespace
 
-        env = Environment(loader=FileSystemLoader("src/arranger/templates/kodi-addons"))
+        env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/kodi-addons"))
         template = env.get_template("addon.xml.j2")
 
         # Mock PSR context for init mode (first release)
@@ -1124,7 +1124,7 @@ class TestTemplateRendering:
         from jinja2 import Environment, FileSystemLoader
         from types import SimpleNamespace
 
-        env = Environment(loader=FileSystemLoader("src/arranger/templates/kodi-addons"))
+        env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/kodi-addons"))
         template = env.get_template("addon.xml.j2")
 
         # Mock PSR context for update mode (cumulative releases)
@@ -1161,7 +1161,7 @@ class TestTemplateRendering:
         """Test CHANGELOG.md.j2 has valid Jinja2 syntax."""
         from jinja2 import Environment, FileSystemLoader
 
-        env = Environment(loader=FileSystemLoader("src/arranger/templates/universal"))
+        env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/universal"))
         template = env.get_template("CHANGELOG.md.j2")
 
         # Template compiles if syntax is valid
@@ -1173,7 +1173,7 @@ class TestTemplateRendering:
         from types import SimpleNamespace
         from datetime import datetime, timezone
 
-        env = Environment(loader=FileSystemLoader("src/arranger/templates/universal"))
+        env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/universal"))
         template = env.get_template("CHANGELOG.md.j2")
 
         # Mock PSR context for init mode
@@ -1213,7 +1213,7 @@ class TestTemplateRendering:
         from types import SimpleNamespace
         from datetime import datetime, timezone
 
-        env = Environment(loader=FileSystemLoader("src/arranger/templates/universal"))
+        env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/universal"))
         template = env.get_template("CHANGELOG.md.j2")
 
         # Mock PSR context for update mode (cumulative releases)
