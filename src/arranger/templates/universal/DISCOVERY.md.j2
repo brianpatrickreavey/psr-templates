@@ -1,0 +1,281 @@
+{#-
+TEMPLATE DISCOVERY DOCUMENT
+
+This template documents all available context variables and filters
+available during PSR template rendering with actual values.
+
+This is NOT meant to be committed - it's a development/debugging tool.
+-#}
+
+# Jinja2 Context & Filters Discovery
+
+## Root Context Object
+
+All attributes available in `ctx`:
+{%- if ctx.existing_addon_file is defined %}
+- `ctx.existing_addon_file`
+{%- endif %}
+{%- if ctx.existing_changelog_file is defined %}
+- `ctx.existing_changelog_file`
+{%- endif %}
+{%- if ctx.changelog_mode is defined %}
+- `ctx.changelog_mode`
+{%- endif %}
+{%- if ctx.history is defined %}
+- `ctx.history`
+{%- endif %}
+
+### Values
+
+- **existing_addon_file**: `{{ ctx.existing_addon_file | default('None') }}`
+- **existing_changelog_file**: `{{ ctx.existing_changelog_file | default('None') }}`
+- **changelog_mode**: `{{ ctx.changelog_mode | default('None') }}`
+- **history**: Object containing release history
+
+## History Object Structure
+
+### ctx.history Attributes
+
+- `ctx.history.released` - Dictionary of all released versions
+
+### ctx.history.released - All Releases
+
+**Total count:** {{ ctx.history.released.keys() | list | length }}
+
+**All versions available:**
+{%- set versions = ctx.history.released.keys() | list | sort %}
+{%- for v in versions %}
+  - `{{ v }}`
+{%- endfor %}
+
+## Individual Release Structure
+
+{%- set all_releases = ctx.history.released.values() | list | sort(attribute='version') %}
+{%- for release in all_releases %}
+
+### Release: v{{ release.version }}
+
+#### Direct Attributes
+{%- if release is mapping %}
+  {%- for attr in release.keys() | sort %}
+    {%- if attr != 'elements' %}
+- **{{ attr }}**: {{ release[attr] | string | truncate(150) }}
+    {%- endif %}
+  {%- endfor %}
+{%- endif %}
+
+#### Elements Structure
+
+Element types available: {{ release.elements.keys() | list | join(', ') }}
+
+{%- for element_type, items in release.elements.items() | sort %}
+
+##### {{ element_type | upper }} Elements ({{ items | length }} total)
+
+{%- for item in items %}
+
+**{{ element_type | upper }} #{{ loop.index }}:**
+- **descriptions**:
+{%- if item.descriptions %}
+  {%- for desc in item.descriptions %}
+  - `{{ desc }}`
+  {%- endfor %}
+{%- else %}
+  - (none)
+{%- endif %}
+- **breaking_descriptions**:
+{%- if item.breaking_descriptions %}
+  {%- for desc in item.breaking_descriptions %}
+  - `{{ desc }}`
+  {%- endfor %}
+{%- else %}
+  - (none)
+{%- endif %}
+
+{%- endfor %}
+{%- endfor %}
+
+{%- endfor %}
+
+## File Reading Filters Demo
+
+The arranger provides custom filters for reading files in templates:
+
+**Available Filters:**
+- `read_file(path)` - Read file, error if missing
+- `read_file_or_empty(path)` - Read file, empty string if missing
+- `file_exists(path)` - Check if file exists (returns boolean)
+
+**Demo File Contents:**
+
+Example reading from `docs/DISCOVERY_SAMPLE.md`:
+
+```jinja
+{%- set sample_file = "docs/DISCOVERY_SAMPLE.md" -%}
+{%- if sample_file | file_exists %}
+{{ sample_file | read_file }}
+{%- else %}
+(file not found)
+{%- endif %}
+```
+
+**Output:**
+{%- set sample_file = "docs/DISCOVERY_SAMPLE.md" -%}
+{%- if sample_file | file_exists %}
+
+{{ sample_file | read_file }}
+
+{%- else %}
+
+(File not found - ensure running from psr-templates root directory)
+
+{%- endif %}
+
+## String Filtering & Text Processing
+
+Jinja2 allows calling Python methods and filters directly on strings:
+
+### Date Formatting Example
+
+{%- set all_releases = ctx.history.released.values() | list | sort(attribute='version') %}
+{%- if all_releases %}
+{%- set latest = all_releases | last %}
+
+Release `v{{ latest.version }}` on: `{{ latest.tagged_date.strftime('%Y-%m-%d') }}`
+Full format: `{{ latest.tagged_date.strftime('%B %d, %Y at %H:%M') }}`
+
+{%- endif %}
+
+### String Operations
+
+Examples of built-in Jinja2 filters on text:
+
+- **upper()**: `{{ "hello" | upper }}`
+- **lower()**: `{{ "HELLO" | lower }}`
+- **title()**: `{{ "hello world" | title }}`
+- **replace()**: `{{ "foo-bar-baz" | replace("-", "_") }}`
+- **truncate()**: `{{ "This is a long string that needs truncation" | truncate(25) }}`
+- **indent()**: Can indent multi-line content (useful for XML/code blocks)
+- **join()**: `{{ ['v0.1.0', 'v0.2.0', 'v1.0.0'] | join(', ') }}`
+
+### List Operations
+
+Common Jinja2 filters for collections:
+
+- **first**: Get first item
+- **last**: Get last item
+- **length**: `{{ ctx.history.released | length }}` releases available
+- **sort()**: Sort by attribute like `sort(attribute='version')`
+- **select()**, **reject()**: Filter items by test condition
+- **map()**: Extract attributes: `{{ all_releases | map(attribute='version') | list }}`
+- **sum()**: Sum numeric values
+- **min()**, **max()**: Find extremes
+
+### Dictionary Access Patterns
+
+Working with release data structures:
+
+{%- if all_releases %}
+{%- set latest_release = all_releases | last %}
+
+**Latest Release (v{{ latest_release.version }}):**
+- Element types: `{{ latest_release.elements.keys() | list | join(', ') }}`
+- Total commits:
+{%- set total = [] %}
+{%- for elem_list in latest_release.elements.values() %}
+{%- if total.append(elem_list | length) %}{% endif %}
+{%- endfor %}
+{{ total | sum }}
+- Breakdown by type:
+{%- for elem_type, items in latest_release.elements.items() %}
+  - {{ elem_type }}: {{ items | length }}
+{%- endfor %}
+
+{%- endif %}
+
+## PSR-Specific Filters (When Using Full PSR)
+
+When templates are rendered by PSR itself (not this mock tool), additional filters are available:
+
+**VCS/Repository Functions:**
+- `commit_hash_url(hash)` - Link to commit
+- `compare_url(startRef, endRef)` - Comparison link
+- `pull_request_url(prNum)` / `merge_request_url(mrNum)` - PR/MR links
+- `issue_url(issueNum)` - Issue tracker link
+- `create_repo_url(path)` - Repository-relative URL
+- `create_server_url(path)` - VCS server URL
+
+**Text Processing:**
+- `autofit_text_width(maxWidth, indent)` - Wrap text to width
+- `convert_md_to_rst()` - Markdown to reStructuredText
+- `sort_numerically(reverse)` - Sort strings with numbers
+
+**Metadata:**
+- `create_pypi_url(package, version)` - PyPI package URL
+- `format_w_official_vcs_name()` - Format with VCS name
+
+**Context Variables (PSR Only):**
+- `ctx.changelog_mode` - "init" or "update"
+- `ctx.hvcs_type` - "github", "gitlab", etc
+- `ctx.repo_name`, `ctx.repo_owner` - Repository metadata
+- `ctx.changelog_insertion_flag` - For update mode splitting
+
+Note: These PSR-specific filters require the full PSR environment and won't appear in this discovery output.
+
+## Custom Python Filters Demo
+
+Custom Python functions can be registered as Jinja2 filters to add application-specific logic:
+
+**Demo Custom Filter:**
+- `hello_world()` - A simple demonstration filter that returns a greeting
+
+**Example Usage:**
+```jinja
+{{ "" | hello_world }}
+```
+
+**Output:**
+```
+{{ "" | hello_world }}
+```
+
+This demonstrates that custom Python code can be:
+1. Defined as functions
+2. Registered with the Jinja2 environment
+3. Called from templates like any built-in filter
+
+You can create more complex filters for:
+- Version string transformations
+- File format conversions
+- Custom text processing
+- Dynamic content generation
+
+## Summary of Discovered Information
+
+### Top-Level Context Variables
+- `existing_addon_file` - Path to existing addon.xml file or None (mode indicator)
+- `existing_changelog_file` - Path to existing CHANGELOG.md file or None (mode indicator)
+- `changelog_mode` - Either 'init' or 'update' depending on file existence
+- `history` - Release history object
+
+### Release History Access
+- `ctx.history.released` - Dictionary with version strings as keys
+- Each release contains version, date, and elements organized by type (feat, fix, perf, etc.)
+
+### Per-Release Data
+- **version** - Semantic version string
+- **tagged_date** - Timestamp when release was tagged
+- **elements** - Dictionary with element types as keys (feat, fix, perf, etc.)
+  - Each element type contains list of commit objects
+  - Commit objects have descriptions and breaking change flags
+
+---
+
+**This document is auto-generated for development only.**
+
+Generate at different phases:
+```bash
+python tools/render_template.py templates/universal/DISCOVERY.md.j2 --phase 0
+python tools/render_template.py templates/universal/DISCOVERY.md.j2 --phase 1
+python tools/render_template.py templates/universal/DISCOVERY.md.j2 --phase 2
+```

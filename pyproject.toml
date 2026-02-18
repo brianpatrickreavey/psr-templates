@@ -9,6 +9,7 @@ dependencies = [
 
 [project.scripts]
 psr-build-template-structure = "arranger.run:main"
+psr-prepare = "psr_prepare.cli:main"
 
 [build-system]
 requires = ["setuptools"]

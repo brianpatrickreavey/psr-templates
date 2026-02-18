@@ -1,103 +1,56 @@
 {#-
-Kodi addon.xml template with support for init and update modes.
+Kodi addon.xml template that consumes psr_prepare context.
 
-Init mode (no existing addon.xml):
-  - Generates complete addon.xml with placeholder metadata
-  - id="script.module.placeholder", name="Placeholder", etc.
-  - Includes <news> section with current release notes
-  - All metadata can be manually updated in fixture or replaced in subsequent releases
+Uses metadata from .psr_context/addon.json and PSR's built-in variables.
 
-Update mode (existing addon.xml):
-  - Reads existing addon.xml file
-  - Preserves ALL metadata (id, name, provider-name, summary, description, requires, etc.)
-  - Updates version attribute to current release version
-  - Updates <news> section with ONLY latest release (NOT cumulative)
-  - If <news> doesn't exist, creates it before </extension>
-  - PSR uses <news> as insertion point to merge updated file content
+Context variables (from psr_prepare/addon.json):
+  - addon.id: Addon ID
+  - addon.name: Display name
+  - addon.provider-name: Provider name
+  - addon.description: Description
+  - addon.summary: Short summary
+  - addon.license: License
+  - addon.disclaimer: Disclaimer
+  - addon.requires: Array of required addons with versions
+  - addon.news_types: Commit type → Kodi label mapping (from changelog config)
 
-News behavior:
-  - NOT cumulative: only contains current release's changes/features
-  - Single block per release: <news>Release vX.Y.Z ... entries ...</news>
-  - Latest version always shows current release's news only
-  - Older releases archived in git history if news change is needed
-
-Example evolution:
-  v0.1.0 (init):   complete addon.xml with placeholder id, <news> with v0.1.0 content
-  v0.2.0 (update): same metadata + id from v0.1.0, version bumped to 0.2.0, <news> with v0.2.0 content only
-  v1.0.0 (update): preserves all v0.2.0 metadata, version bumped to 1.0.0, <news> with v1.0.0 content only
-
-Context variables:
-  - ctx.existing_addon_file: Path to existing addon.xml (if update mode), None if init mode
-  - ctx.history.released: Dict of all releases and their commit data
+Context variables (from PSR):
+  - latest_release: Release object with version, tagged_date, and elements
 -#}
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="{{ addon.id }}" name="{{ addon.name }}" version="{{ latest_release.version }}" provider-name="{{ addon.provider_name }}">
+  <requires>
+    {%- for req in addon.requires %}
+    <import addon="{{ req.addon }}" version="{{ req.version }}" />
+    {%- endfor %}
+  </requires>
+  <extension point="xbmc.addon.metadata">
+    {%- if addon.summary %}
+    <summary>{{ addon.summary }}</summary>
+    {%- endif %}
+    {%- if addon.description %}
+    <description>{{ addon.description }}</description>
+    {%- endif %}
+    {%- if addon.disclaimer %}
+    <disclaimer>{{ addon.disclaimer }}</disclaimer>
+    {%- endif %}
+    {%- if addon.license %}
+    <license>{{ addon.license }}</license>
+    {%- endif %}
+    {% if latest_release -%}
+    <news>v{{ latest_release.version }}{% if latest_release.tagged_date %} ({{ latest_release.tagged_date.strftime("%Y-%m-%d") }}){% endif %}
 
-{#- Macro: Generate news content for a release -#}
-{%- macro generate_news_content(version) -%}
-Release v{{ version }}
-
-{%- set release = ctx.history.released[version] -%}
-{%- set elements = release.get("elements") if release is mapping else release.elements -%}
-
-{%- set section_for = {
-  "feat": ["feat", "features"],
-  "fix": ["fix", "bug fixes"],
-  "perf": ["perf", "performance"]
-} -%}
-
-{%- set order = ["feat", "fix", "perf"] -%}
-
-{%- for tag in order -%}
-{%- set possible_keys = section_for[tag] -%}
-{%- for key in possible_keys -%}
-  {%- if key in elements and elements[key] -%}
-    {%- for item in elements[key] -%}
-      {% for d in item.descriptions %}
-[{{ tag }}] {{ d }}
-      {%- endfor -%}
-      {%- for bd in item.breaking_descriptions -%}
-[{{ tag }}] BREAKING: {{ bd }}
-      {%- endfor -%}
-    {%- endfor -%}
-  {%- endif -%}
-{%- endfor -%}
-{%- endfor -%}
-{%- endmacro -%}
-
-{#- Macro: Generate complete addon.xml from scratch -#}
-{%- macro render_complete_addon(version) -%}
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.module.placeholder" name="Placeholder" version="{{ version }}" provider-name="Unknown">
-    <requires>
-        <import addon="xbmc.python" version="3.0.0"/>
-    </requires>
-    <extension point="xbmc.python.module" library="lib"/>
-    <extension point="xbmc.addon.metadata">
-        <summary>Placeholder addon for semantic release</summary>
-        <description>This is a placeholder addon.xml. Update metadata (id, name, provider-name) as needed.</description>
-        <platform>all</platform>
-        <news>
-{{- generate_news_content(version) | indent(8) }}
-        </news>
-    </extension>
-</addon>
-{%- endmacro -%}
-
-{#- Calculate latest version -#}
-{%- set versions = ctx.history.released.keys() | list | sort -%}
-{%- if not versions -%}
-  {%- set latest_version = "0.0.0" -%}
-{%- else -%}
-  {%- set latest_version = versions | sort(reverse=True) | first -%}
-{%- endif -%}
-
-{#- Render based on mode -#}
-{%- if ctx.existing_addon_file -%}
-  {#- Update mode: Generate ONLY new news section (PSR merges with existing file at <news> insertion point) -#}
-  {%- set new_news = generate_news_content(latest_version) -%}
-    <news>
-{{- new_news | indent(8) }}
+    {% for commit_type, label in addon.news_types.items() -%}
+    {% if latest_release.elements and commit_type in latest_release.elements -%}
+    {% for commit in latest_release.elements[commit_type] -%}
+    {% for desc in commit.descriptions %}  [{{ label }}] {{ desc }}
+    {% endfor -%}
+    {% endfor -%}
+    {% endif -%}
+    {% endfor -%}
     </news>
-{%- else -%}
-  {#- Init mode: Generate complete addon.xml with placeholder metadata -#}
-  {{- render_complete_addon(latest_version) -}}
-{%- endif -%}
+    {%- else %}
+    <news></news>
+    {%- endif %}
+  </extension>
+</addon>
