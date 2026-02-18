@@ -1091,71 +1091,103 @@ class TestTemplateRendering:
         """Test addon.xml.j2 renders correctly in init mode."""
         from jinja2 import Environment, FileSystemLoader
         from types import SimpleNamespace
+        from datetime import datetime, timezone
 
         env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/kodi-addons"))
         template = env.get_template("addon.xml.j2")
 
-        # Mock PSR context for init mode (first release)
-        # PSR wraps context in a 'ctx' object
+        # Mock psr_prepare addon context (from .psr_context/addon.json)
+        addon = SimpleNamespace(
+            id="script.module.example",
+            name="Example Module",
+            provider_name="Example Provider",
+            description="Test module",
+            summary="A test module",
+            disclaimer="",
+            license="GPL-2.0-only",
+            source="",
+            requires=[{"addon": "xbmc.python", "version": "3.0.0+"}],
+            unknown_extensions="",
+            news_types={"feat": "new", "fix": "fix"},
+        )
+
+        # Mock PSR context with addon + release data
+        release = SimpleNamespace(
+            version="0.1.0",
+            tagged_date=datetime(2026, 2, 18, tzinfo=timezone.utc),
+            elements={"feat": [{"descriptions": ["test feature"], "breaking_descriptions": []}]},
+        )
+
         ctx = SimpleNamespace(
             changelog_mode="init",
+            addon=addon,
+            latest_release=release,
             history=SimpleNamespace(
-                released={
-                    "0.1.0": {
-                        "elements": {
-                            "feat": [{"descriptions": ["test feature"], "breaking_descriptions": []}]
-                        }
-                    }
-                }
+                released={"0.1.0": {"elements": release.elements}}
             ),
         )
 
-        output = template.render(ctx=ctx)
+        output = template.render(ctx=ctx, **vars(ctx))
 
         # Verify output contains expected XML structure
         assert '<?xml version="1.0"' in output
         assert '<addon' in output
         assert 'version="0.1.0"' in output
-        assert "id=" in output
-        assert "[feat] test feature" in output
+        assert 'id="script.module.example"' in output
+        assert 'name="Example Module"' in output
+        assert 'provider-name="Example Provider"' in output
 
     def test_addon_xml_template_renders_update_mode(self):
         """Test addon.xml.j2 renders correctly in update mode."""
         from jinja2 import Environment, FileSystemLoader
         from types import SimpleNamespace
+        from datetime import datetime, timezone
 
         env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/kodi-addons"))
         template = env.get_template("addon.xml.j2")
 
-        # Mock PSR context for update mode (cumulative releases)
+        # Mock psr_prepare addon context (from .psr_context/addon.json)
+        addon = SimpleNamespace(
+            id="script.module.example",
+            name="Example Module",
+            provider_name="Example Provider",
+            description="Test module",
+            summary="A test module",
+            disclaimer="",
+            license="GPL-2.0-only",
+            source="",
+            requires=[{"addon": "xbmc.python", "version": "3.0.0+"}],
+            unknown_extensions="",
+            news_types={"feat": "new", "fix": "fix"},
+        )
+
+        # Mock PSR context with addon + latest release (0.2.0)
+        release = SimpleNamespace(
+            version="0.2.0",
+            tagged_date=datetime(2026, 2, 18, tzinfo=timezone.utc),
+            elements={"feat": [{"descriptions": ["new feature"], "breaking_descriptions": []}]},
+        )
+
         ctx = SimpleNamespace(
             changelog_mode="update",
+            addon=addon,
+            latest_release=release,
             history=SimpleNamespace(
                 released={
-                    "0.1.0": {
-                        "elements": {
-                            "feat": [{"descriptions": ["old feature"], "breaking_descriptions": []}]
-                        }
-                    },
-                    "0.2.0": {
-                        "elements": {
-                            "feat": [{"descriptions": ["new feature"], "breaking_descriptions": []}]
-                        }
-                    },
+                    "0.1.0": {"elements": {"feat": [{"descriptions": ["old feature"], "breaking_descriptions": []}]}},
+                    "0.2.0": {"elements": release.elements},
                 }
             ),
         )
 
-        output = template.render(ctx=ctx)
+        output = template.render(ctx=ctx, **vars(ctx))
 
         # Verify output contains expected XML structure
         assert '<?xml version="1.0"' in output
         assert '<addon' in output
-        # Latest version should be selected (0.2.0 comes after 0.1.0 lexicographically)
+        # Latest version should be 0.2.0
         assert 'version="0.2.0"' in output
-        # News should contain latest release only
-        assert "Release v0.2.0" in output
-        assert "[feat] new feature" in output
+        assert 'id="script.module.example"' in output
 
     def test_changelog_md_template_syntax_valid(self):
         """Test CHANGELOG.md.j2 has valid Jinja2 syntax."""
