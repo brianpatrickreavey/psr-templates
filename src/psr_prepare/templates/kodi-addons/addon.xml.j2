@@ -46,14 +46,44 @@ Context variables (from PSR):
     {% if latest_release -%}
     <news>v{{ latest_release.version }}{% if latest_release.tagged_date %} ({{ latest_release.tagged_date.strftime("%Y-%m-%d") }}){% endif %}
 
-    {% for commit_type, label in addon.news_types.items() -%}
-    {% if latest_release.elements and commit_type in latest_release.elements -%}
-    {% for commit in latest_release.elements[commit_type] -%}
-    {% for desc in commit.descriptions %}  [{{ label }}] {{ desc }}
+    {%- set commit_tags = {"features": "feat", "bug fixes": "fix", "performance improvements": "perf", "documentation": "docs", "refactoring": "refactor", "testing": "test", "continuous integration": "ci", "chores": "chore"} -%}
+    {%- set p1_keys = ["features"] -%}
+    {%- set p2_keys = ["bug fixes", "performance improvements"] -%}
+    {%- set p3_keys = ["documentation", "refactoring", "testing", "continuous integration", "chores"] -%}
+    {%- set rendered_keys = p1_keys + p2_keys + p3_keys -%}
+    {%- set elements = latest_release.get("elements", {}) -%}
+    {#- P1: Features -#}
+    {%- for key in p1_keys -%}
+    {%- if key in elements and elements[key] %}
+    {% for item in elements[key] -%}
+    [{{ commit_tags.get(key, key) }}] {{ item.descriptions[0] if item.descriptions else "" }}
     {% endfor -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {#- P2: Bug Fixes & Performance -#}
+    {%- for key in p2_keys -%}
+    {%- if key in elements and elements[key] %}
+    {% for item in elements[key] -%}
+    [{{ commit_tags.get(key, key) }}] {{ item.descriptions[0] if item.descriptions else "" }}
     {% endfor -%}
-    {% endif -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {#- P3: Other categories -#}
+    {%- for key in p3_keys -%}
+    {%- if key in elements and elements[key] %}
+    {% for item in elements[key] -%}
+    [{{ commit_tags.get(key, key) }}] {{ item.descriptions[0] if item.descriptions else "" }}
     {% endfor -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {#- Catch-all: Any remaining types -#}
+    {%- for key in elements | dictsort -%}
+    {%- if key not in rendered_keys and elements[key] %}
+    {% for item in elements[key] -%}
+    [{{ commit_tags.get(key, key | replace(" ", "-")) }}] {{ item.descriptions[0] if item.descriptions else "" }}
+    {% endfor -%}
+    {%- endif -%}
+    {%- endfor -%}
     </news>
     {%- else %}
     <news></news>
