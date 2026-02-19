@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 from xml.etree import ElementTree as ET
 
 from .config import AddonConfig
@@ -29,7 +29,7 @@ class AddonXmlData:
         self.news: Optional[str] = None
         self.root: Optional[ET.Element] = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -90,6 +90,12 @@ def parse_addon_xml(addon_xml_path: Path) -> AddonXmlData:
         root = tree.getroot()
     except ET.ParseError as e:
         logger.error(f"Failed to parse addon.xml: {e}")
+        # Debug: dump file contents when parse fails
+        try:
+            content = addon_xml_path.read_text(encoding="utf-8")
+            logger.error(f"DEBUG: addon.xml first 800 chars:\n{repr(content[:800])}")
+        except Exception as debug_e:
+            logger.error(f"DEBUG: Could not read file: {debug_e}")
         raise
 
     data = AddonXmlData()
@@ -199,7 +205,7 @@ def reconcile_addon(
     xml_data: Optional[AddonXmlData],
     config: Optional[AddonConfig],
     strict: bool = False,
-) -> tuple[dict, list]:
+) -> tuple[dict[str, Any], list[str]]:
     """Reconcile addon.xml and config, with config winning for simple fields.
 
     Args:
@@ -213,8 +219,8 @@ def reconcile_addon(
     Raises:
         ValueError: If strict mode and conflicts found
     """
-    warnings: list = []
-    merged: dict = {}
+    warnings: list[str] = []
+    merged: dict[str, Any] = {}
 
     if not config:
         # No config, use XML as-is
