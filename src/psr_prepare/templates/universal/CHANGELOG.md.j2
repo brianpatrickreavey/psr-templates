@@ -31,6 +31,9 @@ Release sections:
 
 All notable changes to this project will be documented in this file.
 
+{#- DEBUG: Inspect ctx structure -#}
+{#- Available in ctx: history, commits, existing_changelog_file, etc. -#}
+
 {%- set releases = ctx.history.released.values() | list -%}
 {%- set sorted_releases = releases | sort(attribute='version', reverse=True) -%}
 
@@ -40,6 +43,8 @@ All notable changes to this project will be documented in this file.
   {%- if latest_release -%}
 
 ## v{{ latest_release.version }} ({{ latest_release.tagged_date.strftime('%Y-%m-%d') if latest_release.tagged_date else 'Unreleased' }})
+
+<!-- DEBUG: Elements keys = {{ latest_release.get("elements", {}).keys() | list }} -->
 
 {%- set elements = latest_release.get("elements", {}) -%}
 {%- set key_mapping = {"feat": "Features", "fix": "Bug Fixes", "perf": "Performance Improvements"} -%}
@@ -62,6 +67,8 @@ All notable changes to this project will be documented in this file.
   {%- for release in sorted_releases %}
 
 ## v{{ release.version }} ({{ release.tagged_date.strftime('%Y-%m-%d') if release.tagged_date else 'Unreleased' }})
+
+<!-- DEBUG: Elements keys = {{ release.get("elements", {}).keys() | list }} -->
 
 {%- set elements = release.get("elements", {}) %}
 {%- set key_mapping = {"feat": "Features", "fix": "Bug Fixes", "perf": "Performance Improvements"} %}
