@@ -31,9 +31,6 @@ Release sections:
 
 All notable changes to this project will be documented in this file.
 
-{#- DEBUG: Inspect ctx structure -#}
-{#- Available in ctx: history, commits, existing_changelog_file, etc. -#}
-
 {%- set releases = ctx.history.released.values() | list -%}
 {%- set sorted_releases = releases | sort(attribute='version', reverse=True) -%}
 
