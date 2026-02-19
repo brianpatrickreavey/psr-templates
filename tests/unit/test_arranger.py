@@ -1131,9 +1131,8 @@ class TestTemplateRendering:
 
         ctx = SimpleNamespace(
             changelog_mode="init",
-            latest_release=release,
             history=SimpleNamespace(
-                released={"0.1.0": {"elements": release.elements}}
+                released={"0.1.0": release}
             ),
         )
 
@@ -1183,7 +1182,12 @@ class TestTemplateRendering:
         template = env.from_string(template_with_context)
 
         # Mock PSR context with latest release (0.2.0)
-        release = SimpleNamespace(
+        release_0_1_0 = SimpleNamespace(
+            version="0.1.0",
+            tagged_date=datetime(2026, 2, 17, tzinfo=timezone.utc),
+            elements={"feat": [{"descriptions": ["old feature"], "breaking_descriptions": []}]},
+        )
+        release_0_2_0 = SimpleNamespace(
             version="0.2.0",
             tagged_date=datetime(2026, 2, 18, tzinfo=timezone.utc),
             elements={"feat": [{"descriptions": ["new feature"], "breaking_descriptions": []}]},
@@ -1191,11 +1195,10 @@ class TestTemplateRendering:
 
         ctx = SimpleNamespace(
             changelog_mode="update",
-            latest_release=release,
             history=SimpleNamespace(
                 released={
-                    "0.1.0": {"elements": {"feat": [{"descriptions": ["old feature"], "breaking_descriptions": []}]}},
-                    "0.2.0": {"elements": release.elements},
+                    "0.1.0": release_0_1_0,
+                    "0.2.0": release_0_2_0,
                 }
             ),
         )

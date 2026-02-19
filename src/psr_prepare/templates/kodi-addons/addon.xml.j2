@@ -1,10 +1,7 @@
 {#-
-Kodi addon.xml template that consumes psr_prepare context.
+Kodi addon.xml template that consumes psr_prepare context and PSR's release history.
 
-Expects the `addon` variable to be provided in the template render context,
-either via PSR's environment setup or via the render() call.
-
-Context variables expected (provided by psr_prepare or PSR):
+Context variables expected (provided by psr_prepare):
   - addon: Addon metadata dict containing:
     - id: Addon ID
     - name: Display name
@@ -18,10 +15,12 @@ Context variables expected (provided by psr_prepare or PSR):
     - unknown_extensions: Serialized XML of extensions not managed by template
 
 Context variables (from PSR):
-  - latest_release: Release object with version, tagged_date, and elements
+  - ctx: PSR's context object with history.released containing release objects
 -#}
+{%- set releases = ctx.history.released.values() | list %}
+{%- set latest_release = releases[-1] if releases else none %}
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="{{ addon.id }}" name="{{ addon.name }}" version="{{ latest_release.version }}" provider-name="{{ addon.provider_name }}">
+<addon id="{{ addon.id }}" name="{{ addon.name }}" version="{{ latest_release.version if latest_release else "0.0.0" }}" provider-name="{{ addon.provider_name }}">
   <requires>
     {%- for req in addon.requires %}
     <import addon="{{ req.addon }}" version="{{ req.version }}" />
