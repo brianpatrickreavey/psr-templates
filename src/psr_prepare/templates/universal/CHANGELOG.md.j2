@@ -41,18 +41,14 @@ All notable changes to this project will be documented in this file.
 
 ## v{{ latest_release.version }} ({{ latest_release.tagged_date.strftime('%Y-%m-%d') if latest_release.tagged_date else 'Unreleased' }})
 
-<!-- DEBUG: Elements keys = {{ latest_release.get("elements", {}).keys() | list }} -->
-
 {%- set elements = latest_release.get("elements", {}) -%}
-{%- set key_mapping = {"feat": "Features", "fix": "Bug Fixes", "perf": "Performance Improvements"} -%}
-{%- set alt_keys = {"feat": "features", "fix": "bug fixes", "perf": "performance"} -%}
-{%- for tag, section_name in key_mapping.items() -%}
-{%- set key_to_use = tag if tag in elements else alt_keys[tag] -%}
-{%- if key_to_use in elements and elements[key_to_use] %}
+{%- set key_mapping = {"features": "Features", "bug fixes": "Bug Fixes", "performance improvements": "Performance Improvements"} -%}
+{%- for key, section_name in key_mapping.items() -%}
+{%- if key in elements and elements[key] %}
 
 ### {{ section_name }}
 
-{% for item in elements[key_to_use] -%}
+{% for item in elements[key] -%}
 - {{ item.descriptions[0] if item.descriptions else "" }}
 {% endfor -%}
 {%- endif -%}
@@ -65,18 +61,14 @@ All notable changes to this project will be documented in this file.
 
 ## v{{ release.version }} ({{ release.tagged_date.strftime('%Y-%m-%d') if release.tagged_date else 'Unreleased' }})
 
-<!-- DEBUG: Elements keys = {{ release.get("elements", {}).keys() | list }} -->
-
 {%- set elements = release.get("elements", {}) %}
-{%- set key_mapping = {"feat": "Features", "fix": "Bug Fixes", "perf": "Performance Improvements"} %}
-{%- set alt_keys = {"feat": "features", "fix": "bug fixes", "perf": "performance"} %}
-{%- for tag, section_name in key_mapping.items() %}
-{%- set key_to_use = tag if tag in elements else alt_keys[tag] %}
-{%- if key_to_use in elements and elements[key_to_use] %}
+{%- set key_mapping = {"features": "Features", "bug fixes": "Bug Fixes", "performance improvements": "Performance Improvements"} %}
+{%- for key, section_name in key_mapping.items() %}
+{%- if key in elements and elements[key] %}
 
 ### {{ section_name }}
 
-{% for item in elements[key_to_use] %}
+{% for item in elements[key] %}
 - {{ item.descriptions[0] if item.descriptions else "" }}
 {%- endfor %}
 {%- endif %}
