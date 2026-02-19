@@ -18,7 +18,8 @@ Context variables (from PSR):
   - ctx: PSR's context object with history.released containing release objects
 -#}
 {%- set releases = ctx.history.released.values() | list -%}
-{%- set latest_release = releases[-1] if releases else none -%}
+{%- set sorted_releases = releases | sort(attribute='version', reverse=True) -%}
+{%- set latest_release = sorted_releases[0] if sorted_releases else none -%}
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="{{ addon.id }}" name="{{ addon.name }}" version="{{ latest_release.version if latest_release else "0.0.0" }}" provider-name="{{ addon.provider_name }}">
   <requires>
