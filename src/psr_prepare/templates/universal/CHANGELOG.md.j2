@@ -42,11 +42,49 @@ All notable changes to this project will be documented in this file.
 ## v{{ latest_release.version }} ({{ latest_release.tagged_date.strftime('%Y-%m-%d') if latest_release.tagged_date else 'Unreleased' }})
 
 {%- set elements = latest_release.get("elements", {}) -%}
-{%- set key_mapping = {"features": "Features", "bug fixes": "Bug Fixes", "performance improvements": "Performance Improvements"} -%}
-{%- for key, section_name in key_mapping.items() -%}
+{%- set p1_keys = ["features"] -%}
+{%- set p2_keys = ["bug fixes", "performance improvements"] -%}
+{%- set p3_keys = ["documentation", "refactoring", "testing", "continuous integration", "chores"] -%}
+{%- set rendered_keys = set(p1_keys + p2_keys + p3_keys) -%}
+{%- set section_titles = {"features": "Features", "bug fixes": "Bug Fixes", "performance improvements": "Performance Improvements", "documentation": "Documentation", "refactoring": "Refactoring", "testing": "Testing", "continuous integration": "Continuous Integration", "chores": "Chores", "unknown": "Other Changes"} -%}
+{#- P1: Features (Minor version) -#}
+{%- for key in p1_keys -%}
 {%- if key in elements and elements[key] %}
 
-### {{ section_name }}
+### {{ section_titles.get(key, key | title) }}
+
+{% for item in elements[key] -%}
+- {{ item.descriptions[0] if item.descriptions else "" }}
+{% endfor -%}
+{%- endif -%}
+{%- endfor -%}
+{#- P2: Bug Fixes & Performance (Patch version) -#}
+{%- for key in p2_keys -%}
+{%- if key in elements and elements[key] %}
+
+### {{ section_titles.get(key, key | title) }}
+
+{% for item in elements[key] -%}
+- {{ item.descriptions[0] if item.descriptions else "" }}
+{% endfor -%}
+{%- endif -%}
+{%- endfor -%}
+{#- P3: Other categories -#}
+{%- for key in p3_keys -%}
+{%- if key in elements and elements[key] %}
+
+### {{ section_titles.get(key, key | title) }}
+
+{% for item in elements[key] -%}
+- {{ item.descriptions[0] if item.descriptions else "" }}
+{% endfor -%}
+{%- endif -%}
+{%- endfor -%}
+{#- Catch-all: Any remaining uncategorized types -#}
+{%- for key in elements | dictsort -%}
+{%- if key not in rendered_keys and elements[key] %}
+
+### {{ section_titles.get(key, key | title) }}
 
 {% for item in elements[key] -%}
 - {{ item.descriptions[0] if item.descriptions else "" }}
@@ -62,11 +100,49 @@ All notable changes to this project will be documented in this file.
 ## v{{ release.version }} ({{ release.tagged_date.strftime('%Y-%m-%d') if release.tagged_date else 'Unreleased' }})
 
 {%- set elements = release.get("elements", {}) %}
-{%- set key_mapping = {"features": "Features", "bug fixes": "Bug Fixes", "performance improvements": "Performance Improvements"} %}
-{%- for key, section_name in key_mapping.items() %}
+{%- set p1_keys = ["features"] %}
+{%- set p2_keys = ["bug fixes", "performance improvements"] %}
+{%- set p3_keys = ["documentation", "refactoring", "testing", "continuous integration", "chores"] %}
+{%- set rendered_keys = set(p1_keys + p2_keys + p3_keys) %}
+{%- set section_titles = {"features": "Features", "bug fixes": "Bug Fixes", "performance improvements": "Performance Improvements", "documentation": "Documentation", "refactoring": "Refactoring", "testing": "Testing", "continuous integration": "Continuous Integration", "chores": "Chores", "unknown": "Other Changes"} %}
+{#- P1: Features (Minor version) -#}
+{%- for key in p1_keys %}
 {%- if key in elements and elements[key] %}
 
-### {{ section_name }}
+### {{ section_titles.get(key, key | title) }}
+
+{% for item in elements[key] %}
+- {{ item.descriptions[0] if item.descriptions else "" }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{#- P2: Bug Fixes & Performance (Patch version) -#}
+{%- for key in p2_keys %}
+{%- if key in elements and elements[key] %}
+
+### {{ section_titles.get(key, key | title) }}
+
+{% for item in elements[key] %}
+- {{ item.descriptions[0] if item.descriptions else "" }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{#- P3: Other categories -#}
+{%- for key in p3_keys %}
+{%- if key in elements and elements[key] %}
+
+### {{ section_titles.get(key, key | title) }}
+
+{% for item in elements[key] %}
+- {{ item.descriptions[0] if item.descriptions else "" }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{#- Catch-all: Any remaining uncategorized types -#}
+{%- for key in elements | dictsort %}
+{%- if key not in rendered_keys and elements[key] %}
+
+### {{ section_titles.get(key, key | title) }}
 
 {% for item in elements[key] %}
 - {{ item.descriptions[0] if item.descriptions else "" }}
