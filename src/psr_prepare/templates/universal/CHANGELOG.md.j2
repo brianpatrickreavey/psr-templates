@@ -45,7 +45,7 @@ All notable changes to this project will be documented in this file.
 {%- set p1_keys = ["features"] -%}
 {%- set p2_keys = ["bug fixes", "performance improvements"] -%}
 {%- set p3_keys = ["documentation", "refactoring", "testing", "continuous integration", "chores"] -%}
-{%- set rendered_keys = set(p1_keys + p2_keys + p3_keys) -%}
+{%- set rendered_keys = p1_keys + p2_keys + p3_keys -%}
 {%- set section_titles = {"features": "Features", "bug fixes": "Bug Fixes", "performance improvements": "Performance Improvements", "documentation": "Documentation", "refactoring": "Refactoring", "testing": "Testing", "continuous integration": "Continuous Integration", "chores": "Chores", "unknown": "Other Changes"} -%}
 {#- P1: Features (Minor version) -#}
 {%- for key in p1_keys -%}
@@ -103,7 +103,7 @@ All notable changes to this project will be documented in this file.
 {%- set p1_keys = ["features"] %}
 {%- set p2_keys = ["bug fixes", "performance improvements"] %}
 {%- set p3_keys = ["documentation", "refactoring", "testing", "continuous integration", "chores"] %}
-{%- set rendered_keys = set(p1_keys + p2_keys + p3_keys) %}
+{%- set rendered_keys = p1_keys + p2_keys + p3_keys %}
 {%- set section_titles = {"features": "Features", "bug fixes": "Bug Fixes", "performance improvements": "Performance Improvements", "documentation": "Documentation", "refactoring": "Refactoring", "testing": "Testing", "continuous integration": "Continuous Integration", "chores": "Chores", "unknown": "Other Changes"} %}
 {#- P1: Features (Minor version) -#}
 {%- for key in p1_keys %}
