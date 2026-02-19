@@ -16,7 +16,7 @@ Usage:
 """
 
 import argparse
-import json
+import logging
 import os
 import sys
 from datetime import datetime, timezone
@@ -45,7 +45,6 @@ class MockParsedCommit(NamedTuple):
 
     descriptions: list[str]
     breaking_descriptions: list[str]
-
 
 
 def build_mock_release_history(phase: int = 0) -> ReleaseHistory:
@@ -186,22 +185,6 @@ def render_templates(
         # Get the last (newest) release from the ordered dict
         latest_release = list(release_history.released.values())[-1]
         env.globals["latest_release"] = latest_release
-
-    # Load psr_prepare context if available
-    psr_context_dir = work_dir / ".psr_context"
-    if psr_context_dir.exists():
-        addon_json_path = psr_context_dir / "addon.json"
-        if addon_json_path.exists():
-            try:
-                with open(addon_json_path) as f:
-                    addon_data = json.load(f)
-                    # Convert "provider-name" to "provider_name" for Jinja2 access
-                    if "provider-name" in addon_data:
-                        addon_data["provider_name"] = addon_data["provider-name"]
-                    # Make addon context available in templates
-                    env.globals["addon"] = addon_data
-            except Exception as e:
-                print(f"⚠ Warning: Failed to load addon.json: {e}", file=sys.stderr)
 
     # Find templates to render
     if specific_template:

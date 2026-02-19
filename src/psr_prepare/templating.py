@@ -3,18 +3,30 @@
 import logging
 import shutil
 from pathlib import Path
+from typing import Optional
 
 from .config import AddonConfig
+from .context import generate_context_injection
 
 logger = logging.getLogger(__name__)
 
 
-def copy_universal_templates(source_dir: Path, target_dir: Path) -> None:
+def copy_universal_templates(
+    source_dir: Path,
+    target_dir: Path,
+    addon_data: Optional[dict[str, str]] = None,
+    news_types: Optional[dict[str, str]] = None,
+) -> None:
     """Copy universal templates from source to target.
+
+    Injects addon context at the top of .j2 template files so context
+    is available during PSR rendering.
 
     Args:
         source_dir: Source template directory (e.g., src/arranger/templates/universal)
         target_dir: Target directory (e.g., templates/)
+        addon_data: Optional addon metadata to inject into templates
+        news_types: Optional news type mappings to include in context
     """
     universal_src = source_dir / "universal"
 
@@ -24,13 +36,25 @@ def copy_universal_templates(source_dir: Path, target_dir: Path) -> None:
 
     target_dir.mkdir(parents=True, exist_ok=True)
 
+    # Generate context injection if addon_data provided
+    context_injection = generate_context_injection(addon_data, news_types)
+
     for item in universal_src.rglob("*"):
         if item.is_file():
             rel_path = item.relative_to(universal_src)
             target_file = target_dir / rel_path
+
             target_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(item, target_file)
-            logger.info(f"Copied universal/{rel_path}")
+
+            # If it's a Jinja2 template and we have context, inject it at the top
+            if item.suffix == ".j2" and context_injection:
+                content = item.read_text(encoding="utf-8")
+                content_with_context = context_injection + content
+                target_file.write_text(content_with_context, encoding="utf-8")
+                logger.info(f"Copied universal/{rel_path} (with context injection)")
+            else:
+                shutil.copy2(item, target_file)
+                logger.info(f"Copied universal/{rel_path}")
 
     logger.info(f"Universal templates copied to {target_dir}")
 
@@ -39,15 +63,20 @@ def copy_addon_templates(
     source_dir: Path,
     target_dir: Path,
     addon_config: AddonConfig,
+    addon_data: Optional[dict[str, str]] = None,
+    news_types: Optional[dict[str, str]] = None,
 ) -> None:
     """Copy addon templates from source to target, organized by addon_id.
 
-    Also ensures addon.xml.j2 template includes news placeholder.
+    Injects addon context at the top of .j2 template files so context
+    is available during PSR rendering.
 
     Args:
         source_dir: Source template directory (e.g., src/arranger/templates)
         target_dir: Target directory (e.g., templates/)
         addon_config: Addon configuration with id
+        addon_data: Optional addon metadata to inject into templates
+        news_types: Optional news type mappings to include in context
     """
     addon_src = source_dir / "kodi-addons"
 
@@ -59,13 +88,24 @@ def copy_addon_templates(
     addon_target = target_dir / addon_id
     addon_target.mkdir(parents=True, exist_ok=True)
 
+    # Generate context injection if addon_data provided
+    context_injection = generate_context_injection(addon_data, news_types)
+
     for item in addon_src.rglob("*"):
         if item.is_file():
             rel_path = item.relative_to(addon_src)
             target_file = addon_target / rel_path
             target_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(item, target_file)
-            logger.info(f"Copied kodi-addons/{rel_path} → {addon_id}/{rel_path}")
+
+            # If it's a Jinja2 template and we have context, inject it at the top
+            if item.suffix == ".j2" and context_injection:
+                content = item.read_text(encoding="utf-8")
+                content_with_context = context_injection + content
+                target_file.write_text(content_with_context, encoding="utf-8")
+                logger.info(f"Copied kodi-addons/{rel_path} → {addon_id}/{rel_path} (with context injection)")
+            else:
+                shutil.copy2(item, target_file)
+                logger.info(f"Copied kodi-addons/{rel_path} → {addon_id}/{rel_path}")
 
     # Ensure addon.xml.j2 has news placeholder
     addon_xml_template = addon_target / "addon.xml.j2"

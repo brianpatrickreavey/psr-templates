@@ -7,7 +7,6 @@ from pathlib import Path
 
 from .addon import parse_addon_xml, reconcile_addon
 from .config import load_config
-from .context import write_addon_context, write_changelog_context
 from .templating import copy_addon_templates, copy_universal_templates
 
 logger = logging.getLogger(__name__)
@@ -33,7 +32,7 @@ def setup_logging(debug: bool = False, quiet: bool = False) -> None:
 
 
 def main() -> int:
-    """Main entry point for psr_prepare CLI.
+    r"""Execute psr_prepare to prepare templates and configuration for PSR.
 
     Returns:
         Exit code (0=success, 1=config error, 2=parse error, 3=reconciliation error)
@@ -130,36 +129,20 @@ Examples:
                 logger.error(f"Reconciliation error: {e}")
                 return 3
 
-        # 5. Write context JSON
-        if config.addon:
-            # Pass news_types from changelog config to addon context
-            news_types = config.changelog.news_types if config.changelog else None
-            if args.dry_run:
-                logger.info(f"[DRY RUN] Would write addon.json to {context_dir / 'addon.json'}")
-            else:
-                write_addon_context(context_dir, addon_merged, news_types=news_types)
-                logger.info(f"Wrote addon context to {context_dir / 'addon.json'}")
+        # 5. Copy templates with context injection
+        # Extract news_types from changelog config
+        news_types = config.changelog.news_types if config.changelog else None
 
-        if config.changelog:
-            changelog_exists = (project_root / config.changelog.file).exists()
-            if args.dry_run:
-                logger.info(f"[DRY RUN] Would write changelog.json to {context_dir / 'changelog.json'}")
-            else:
-                write_changelog_context(context_dir, config.changelog, changelog_exists)
-                logger.info(f"Wrote changelog context to {context_dir / 'changelog.json'}")
-
-        # 6. Copy templates
         if args.dry_run:
             logger.info(f"[DRY RUN] Would copy universal templates to {templates_dir}")
+            if config.addon:
+                logger.info(f"[DRY RUN] Would copy addon templates to {templates_dir / config.addon.id}")
         else:
-            copy_universal_templates(source_templates_dir, templates_dir)
+            copy_universal_templates(source_templates_dir, templates_dir, addon_merged, news_types)
             logger.info(f"Universal templates copied to {templates_dir}")
 
-        if config.addon:
-            if args.dry_run:
-                logger.info(f"[DRY RUN] Would copy addon templates to {templates_dir / config.addon.id}")
-            else:
-                copy_addon_templates(source_templates_dir, templates_dir, config.addon)
+            if config.addon:
+                copy_addon_templates(source_templates_dir, templates_dir, config.addon, addon_merged, news_types)
                 logger.info(f"Addon templates copied to {templates_dir / config.addon.id}")
 
         # 7. Report warnings if any

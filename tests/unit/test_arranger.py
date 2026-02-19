@@ -1089,29 +1089,40 @@ class TestTemplateRendering:
 
     def test_addon_xml_template_renders_init_mode(self):
         """Test addon.xml.j2 renders correctly in init mode."""
-        from jinja2 import Environment, FileSystemLoader
+        from jinja2 import Environment, BaseLoader
         from types import SimpleNamespace
         from datetime import datetime, timezone
+        from pathlib import Path
+        from psr_prepare.context import generate_context_injection
 
-        env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/kodi-addons"))
-        template = env.get_template("addon.xml.j2")
+        addon_dir = Path("src/psr_prepare/templates/kodi-addons")
+        
+        # Prepare addon data
+        addon_data = {
+            "id": "script.module.example",
+            "name": "Example Module",
+            "provider-name": "Example Provider",
+            "description": "Test module",
+            "summary": "A test module",
+            "disclaimer": "",
+            "license": "GPL-2.0-only",
+            "source": "",
+            "requires": [{"addon": "xbmc.python", "version": "3.0.0+"}],
+            "unknown_extensions": "",
+        }
+        news_types = {"feat": "new", "fix": "fix"}
+        
+        # Read template and inject context
+        template_path = addon_dir / "addon.xml.j2"
+        template_content = template_path.read_text(encoding="utf-8")
+        context_injection = generate_context_injection(addon_data, news_types)
+        template_with_context = context_injection + template_content
+        
+        # Create environment with template from string
+        env = Environment(loader=BaseLoader())
+        template = env.from_string(template_with_context)
 
-        # Mock psr_prepare addon context (from .psr_context/addon.json)
-        addon = SimpleNamespace(
-            id="script.module.example",
-            name="Example Module",
-            provider_name="Example Provider",
-            description="Test module",
-            summary="A test module",
-            disclaimer="",
-            license="GPL-2.0-only",
-            source="",
-            requires=[{"addon": "xbmc.python", "version": "3.0.0+"}],
-            unknown_extensions="",
-            news_types={"feat": "new", "fix": "fix"},
-        )
-
-        # Mock PSR context with addon + release data
+        # Mock PSR context with latest release data
         release = SimpleNamespace(
             version="0.1.0",
             tagged_date=datetime(2026, 2, 18, tzinfo=timezone.utc),
@@ -1120,7 +1131,6 @@ class TestTemplateRendering:
 
         ctx = SimpleNamespace(
             changelog_mode="init",
-            addon=addon,
             latest_release=release,
             history=SimpleNamespace(
                 released={"0.1.0": {"elements": release.elements}}
@@ -1139,29 +1149,40 @@ class TestTemplateRendering:
 
     def test_addon_xml_template_renders_update_mode(self):
         """Test addon.xml.j2 renders correctly in update mode."""
-        from jinja2 import Environment, FileSystemLoader
+        from jinja2 import Environment, BaseLoader
         from types import SimpleNamespace
         from datetime import datetime, timezone
+        from pathlib import Path
+        from psr_prepare.context import generate_context_injection
 
-        env = Environment(loader=FileSystemLoader("src/psr_prepare/templates/kodi-addons"))
-        template = env.get_template("addon.xml.j2")
+        addon_dir = Path("src/psr_prepare/templates/kodi-addons")
+        
+        # Prepare addon data
+        addon_data = {
+            "id": "script.module.example",
+            "name": "Example Module",
+            "provider-name": "Example Provider",
+            "description": "Test module",
+            "summary": "A test module",
+            "disclaimer": "",
+            "license": "GPL-2.0-only",
+            "source": "",
+            "requires": [{"addon": "xbmc.python", "version": "3.0.0+"}],
+            "unknown_extensions": "",
+        }
+        news_types = {"feat": "new", "fix": "fix"}
+        
+        # Read template and inject context
+        template_path = addon_dir / "addon.xml.j2"
+        template_content = template_path.read_text(encoding="utf-8")
+        context_injection = generate_context_injection(addon_data, news_types)
+        template_with_context = context_injection + template_content
+        
+        # Create environment with template from string
+        env = Environment(loader=BaseLoader())
+        template = env.from_string(template_with_context)
 
-        # Mock psr_prepare addon context (from .psr_context/addon.json)
-        addon = SimpleNamespace(
-            id="script.module.example",
-            name="Example Module",
-            provider_name="Example Provider",
-            description="Test module",
-            summary="A test module",
-            disclaimer="",
-            license="GPL-2.0-only",
-            source="",
-            requires=[{"addon": "xbmc.python", "version": "3.0.0+"}],
-            unknown_extensions="",
-            news_types={"feat": "new", "fix": "fix"},
-        )
-
-        # Mock PSR context with addon + latest release (0.2.0)
+        # Mock PSR context with latest release (0.2.0)
         release = SimpleNamespace(
             version="0.2.0",
             tagged_date=datetime(2026, 2, 18, tzinfo=timezone.utc),
@@ -1170,7 +1191,6 @@ class TestTemplateRendering:
 
         ctx = SimpleNamespace(
             changelog_mode="update",
-            addon=addon,
             latest_release=release,
             history=SimpleNamespace(
                 released={

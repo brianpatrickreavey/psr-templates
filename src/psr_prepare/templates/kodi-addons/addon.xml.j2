@@ -1,25 +1,141 @@
 {#-
 Kodi addon.xml template that consumes psr_prepare context.
 
-Uses metadata from .psr_context/addon.json and PSR's built-in variables.
+Expects the `addon` variable to be provided in the template render context,
+either via PSR's environment setup or via the render() call.
 
-Context variables (from psr_prepare/addon.json):
-  - addon.id: Addon ID
-  - addon.name: Display name
-  - addon.provider-name: Provider name
-  - addon.description: Description
-  - addon.summary: Short summary
-  - addon.license: License
-  - addon.disclaimer: Disclaimer
-  - addon.requires: Array of required addons with versions
-  - addon.news_types: Commit type → Kodi label mapping (from changelog config)
-  - addon.unknown_extensions: Serialized XML of extensions not managed by template
+Context variables expected (provided by psr_prepare or PSR):
+  - addon: Addon metadata dict containing:
+    - id: Addon ID
+    - name: Display name
+    - provider_name: Provider name (converted from provider-name)
+    - description: Description
+    - summary: Short summary
+    - license: License
+    - disclaimer: Disclaimer
+    - requires: Array of required addons with versions
+    - news_types: Commit type → Kodi label mapping
+    - unknown_extensions: Serialized XML of extensions not managed by template
 
 Context variables (from PSR):
   - latest_release: Release object with version, tagged_date, and elements
 -#}
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="{{ addon.id }}" name="{{ addon.name }}" version="{{ latest_release.version }}" provider-name="{{ addon.provider_name }}">
+  <requires>
+    {%- for req in addon.requires %}
+    <import addon="{{ req.addon }}" version="{{ req.version }}" />
+    {%- endfor %}
+  </requires>
+  {%- if addon.unknown_extensions | trim %}
+  {{ addon.unknown_extensions | trim | safe }}
+  {%- endif %}
+  <extension point="xbmc.addon.metadata">
+    {%- if addon.summary %}
+    <summary>{{ addon.summary }}</summary>
+    {%- endif %}
+    {%- if addon.description %}
+    <description>{{ addon.description }}</description>
+    {%- endif %}
+    {%- if addon.disclaimer %}
+    <disclaimer>{{ addon.disclaimer }}</disclaimer>
+    {%- endif %}
+    {%- if addon.license %}
+    <license>{{ addon.license }}</license>
+    {%- endif %}
+    {% if latest_release -%}
+    <news>v{{ latest_release.version }}{% if latest_release.tagged_date %} ({{ latest_release.tagged_date.strftime("%Y-%m-%d") }}){% endif %}
+
+    {% for commit_type, label in addon.news_types.items() -%}
+    {% if latest_release.elements and commit_type in latest_release.elements -%}
+    {% for commit in latest_release.elements[commit_type] -%}
+    {% for desc in commit.descriptions %}  [{{ label }}] {{ desc }}
+    {% endfor -%}
+    {% endfor -%}
+    {% endif -%}
+    {% endfor -%}
+    </news>
+    {%- else %}
+    <news></news>
+    {%- endif %}
+  </extension>
+</addon>
+  <requires>
+    {%- for req in addon.requires %}
+    <import addon="{{ req.addon }}" version="{{ req.version }}" />
+    {%- endfor %}
+  </requires>
+  {%- if addon.unknown_extensions | trim %}
+  {{ addon.unknown_extensions | trim | safe }}
+  {%- endif %}
+  <extension point="xbmc.addon.metadata">
+    {%- if addon.summary %}
+    <summary>{{ addon.summary }}</summary>
+    {%- endif %}
+    {%- if addon.description %}
+    <description>{{ addon.description }}</description>
+    {%- endif %}
+    {%- if addon.disclaimer %}
+    <disclaimer>{{ addon.disclaimer }}</disclaimer>
+    {%- endif %}
+    {%- if addon.license %}
+    <license>{{ addon.license }}</license>
+    {%- endif %}
+    {% if latest_release -%}
+    <news>v{{ latest_release.version }}{% if latest_release.tagged_date %} ({{ latest_release.tagged_date.strftime("%Y-%m-%d") }}){% endif %}
+
+    {% for commit_type, label in addon.news_types.items() -%}
+    {% if latest_release.elements and commit_type in latest_release.elements -%}
+    {% for commit in latest_release.elements[commit_type] -%}
+    {% for desc in commit.descriptions %}  [{{ label }}] {{ desc }}
+    {% endfor -%}
+    {% endfor -%}
+    {% endif -%}
+    {% endfor -%}
+    </news>
+    {%- else %}
+    <news></news>
+    {%- endif %}
+  </extension>
+</addon>
+  <requires>
+    {%- for req in addon.requires %}
+    <import addon="{{ req.addon }}" version="{{ req.version }}" />
+    {%- endfor %}
+  </requires>
+  {%- if addon.unknown_extensions | trim %}
+  {{ addon.unknown_extensions | trim | safe }}
+  {%- endif %}
+  <extension point="xbmc.addon.metadata">
+    {%- if addon.summary %}
+    <summary>{{ addon.summary }}</summary>
+    {%- endif %}
+    {%- if addon.description %}
+    <description>{{ addon.description }}</description>
+    {%- endif %}
+    {%- if addon.disclaimer %}
+    <disclaimer>{{ addon.disclaimer }}</disclaimer>
+    {%- endif %}
+    {%- if addon.license %}
+    <license>{{ addon.license }}</license>
+    {%- endif %}
+    {% if latest_release -%}
+    <news>v{{ latest_release.version }}{% if latest_release.tagged_date %} ({{ latest_release.tagged_date.strftime("%Y-%m-%d") }}){% endif %}
+
+    {% for commit_type, label in addon.news_types.items() -%}
+    {% if latest_release.elements and commit_type in latest_release.elements -%}
+    {% for commit in latest_release.elements[commit_type] -%}
+    {% for desc in commit.descriptions %}  [{{ label }}] {{ desc }}
+    {% endfor -%}
+    {% endfor -%}
+    {% endif -%}
+    {% endfor -%}
+    </news>
+    {%- else %}
+    <news></news>
+    {%- endif %}
+  </extension>
+</addon>
   <requires>
     {%- for req in addon.requires %}
     <import addon="{{ req.addon }}" version="{{ req.version }}" />
