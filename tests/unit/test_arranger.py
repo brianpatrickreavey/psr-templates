@@ -1096,7 +1096,7 @@ class TestTemplateRendering:
         from psr_prepare.context import generate_context_injection
 
         addon_dir = Path("src/psr_prepare/templates/kodi-addons")
-        
+
         # Prepare addon data
         addon_data = {
             "id": "script.module.example",
@@ -1111,13 +1111,13 @@ class TestTemplateRendering:
             "unknown_extensions": "",
         }
         news_types = {"feat": "new", "fix": "fix"}
-        
+
         # Read template and inject context
         template_path = addon_dir / "addon.xml.j2"
         template_content = template_path.read_text(encoding="utf-8")
         context_injection = generate_context_injection(addon_data, news_types)
         template_with_context = context_injection + template_content
-        
+
         # Create environment with template from string
         env = Environment(loader=BaseLoader())
         template = env.from_string(template_with_context)
@@ -1155,7 +1155,7 @@ class TestTemplateRendering:
         from psr_prepare.context import generate_context_injection
 
         addon_dir = Path("src/psr_prepare/templates/kodi-addons")
-        
+
         # Prepare addon data
         addon_data = {
             "id": "script.module.example",
@@ -1170,13 +1170,13 @@ class TestTemplateRendering:
             "unknown_extensions": "",
         }
         news_types = {"feat": "new", "fix": "fix"}
-        
+
         # Read template and inject context
         template_path = addon_dir / "addon.xml.j2"
         template_content = template_path.read_text(encoding="utf-8")
         context_injection = generate_context_injection(addon_data, news_types)
         template_with_context = context_injection + template_content
-        
+
         # Create environment with template from string
         env = Environment(loader=BaseLoader())
         template = env.from_string(template_with_context)
