@@ -83,6 +83,71 @@ make ci-simulate
 - Tests behavior with different Python versions (3.8-3.12)
 - Safe: All artifacts created in isolated fixture repo only
 
+## Local Testing with `act` and Gitea
+
+To test the complete 5-phase PSR release workflow locally **without affecting GitHub**:
+
+### Prerequisites
+
+1. **Docker**: Must be running (gitea service container runs inside Docker)
+2. **`act`**: Install the GitHub Actions local runner
+   ```bash
+   curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+   ```
+3. **psr-templates-fixture**: Clone or update the fixture repo
+
+### Quick Start
+
+```bash
+cd psr-templates-fixture
+
+# Run all 5 release phases
+act --file .github/workflows/test-harness.yml --verbose
+```
+
+### What Happens
+
+1. **Gitea Service Starts**: A local git server (gitea) spins up at `http://localhost:3000`
+2. **Repository Initialization**: Test repo cloned with psr-templates-fixture files
+3. **5 Phases Execute**: Each phase generates commits → runs psr-prepare → runs python-semantic-release
+4. **Version Progression**:
+   - Phase 1: v0.1.0
+   - Phase 2: v0.1.1
+   - Phase 3: v1.0.0 (forced major)
+   - Phase 4: v1.0.0 (docs only, no bump)
+   - Phase 5: v1.0.1
+5. **Cleanup**: Gitea repository deleted; nothing left behind
+
+### Configuration
+
+The `.actrc` file (in fixture root) configures:
+- Docker image: `ghcr.io/catthehacker/ubuntu:full-latest` (includes Docker)
+- Gitea service details and health check timeout
+
+No additional setup needed; gitea starts/stops automatically per workflow run.
+
+### Troubleshooting
+
+**Gitea timeouts**: Increase health check wait time in `.actrc` if gitea takes >10s to start
+**Git push failures**: Ensure gitea service is healthy; check logs with `act --verbose`
+**Port conflicts**: If port 3000/22 are busy, gitea startup fails; close other services first
+**Docker memory**: Gitea requires ~500MB; ensure sufficient Docker resources allocated
+
+### Debugging
+
+```bash
+# Run a single phase to debug
+act --file .github/workflows/test-harness.yml -j release-phase-1 --verbose
+
+# Keep containers after execution for inspection
+act --reuse --verbose
+
+# View act version
+act --version
+```
+
+See [architecture.md](./architecture.md) for details on the 5-phase design and phase progression.
+
 ## CI/CD
 
 The project uses GitHub Actions with `uv` for:

@@ -88,19 +88,53 @@ The CI/test harness is designed to validate PSR template placement and semantic 
 - **psr-templates**: Source of truth for templates, tests, and logic. Read-only during testing.
 - **psr-templates-fixture**: Isolated test environment ("harness") where all test artifacts—commits, pushes, tags, releases, and modifications—live. This keeps the harness self-contained.
 
+### Multi-Phase Release Testing (5 Phases)
+
+The workflow executes 5 sequential release phases to validate version progression:
+
+1. **Phase 1**: Feature commits → v0.1.0 (minor bump from v0.0.0)
+2. **Phase 2**: Fix commits → v0.1.1 (patch bump)
+3. **Phase 3**: Feature commits with `force: major` → v1.0.0 (major bump)
+4. **Phase 4**: Documentation-only commits → v1.0.0 (no version change, docs-only)
+5. **Phase 5**: Fix commits → v1.0.1 (patch bump post-major)
+
+Each phase:
+- Generates phase-specific commits via `tools/generate_commits.py --phase N`
+- Runs `psr-prepare` to prepare templates and context
+- Executes `python-semantic-release` to create tags and GitHub releases
+- (Optional) Builds and publishes Kodi addon artifacts if present
+- Subsequent phases see prior commits and tags (full git history inheritance)
+
 ### Workflow Overview (GitHub Actions)
 
-1. **pre-psr-phase**: Sets up test environments, generates test commits in fixture, pushes test branch.
-2. **psr-execution**: Checks out prepared fixture branch, runs PSR to analyze commits and generate releases.
-3. **post-psr-phase**: Validates generated releases and changelog content.
-4. **cleanup**: Removes test branches and tags from fixture.
+1. **pre-release-tests**: Checkout, cleanup old artifacts, setup venv, run pre-PSR tests
+2. **release-phase-1 through release-phase-5**: Each generates → prepares → releases
+3. **kodi-check/zip/publish**: Parallel Kodi addon tasks (one per phase)
+4. **post-release-tests**: Integration validation of all releases and changelogs
+
+### Local Testing with `act` and Gitea
+
+For iterative development without polluting GitHub, the workflow supports local execution via `act`:
+
+- **Service Container**: Gitea (`gitea/gitea:latest`) runs as a GitHub Actions service in local mode only
+- **Auto-Detection**: Workflow detects ACT mode via `$ACT` environment variable
+- **Local Git Server**: Test repository cloned/pushed to `http://localhost:3000/test-repo.git` (anonymous)
+- **No GitHub Artifacts**: All test commits, tags, and releases exist only in local gitea; nothing leaks to GitHub
+
+**Running Local Tests:**
+```bash
+cd psr-templates-fixture
+act --file .github/workflows/test-harness.yml -j release-phase-1 --verbose
+```
+
+All 5 phases can be tested locally before any push to GitHub.
 
 ### Key Principles
 
-- **Isolation**: Test artifacts confined to fixture; templates repo untouched.
-- **Reusability**: Composite actions for shared workflows.
-- **Reproducibility**: Local testing via `act` mirrors production CI behavior.
-- **Safety**: No production tags/releases in CI runs; uses isolated test repos.
+- **Isolation**: Test artifacts confined to fixture (GitHub or local gitea); templates repo untouched
+- **Reproducibility**: Local testing via `act` with gitea mirrors production CI behavior
+- **Safety**: No production tags/releases in CI runs; uses isolated test repos or local gitea
+- **Git State Persistence**: Full commit history and tags inherited across phases within a single workflow run
 
 ## Testing Strategy
 
