@@ -11,6 +11,11 @@ on:
         description: 'Unique run ID'
         required: true
         default: 'manual-run-001'
+      cleanup_after:
+        description: 'Clean up test artifacts after workflow completes'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   dispatch:
@@ -21,5 +26,5 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/psr-templates-fixture
           event-type: test-harness-run
-          client-payload: '{"templates_repo": "${{ github.repository }}", "templates_ref": "${{ inputs.templates_ref }}", "run_id": "${{ inputs.run_id }}"}'
+          client-payload: '{"templates_repo": "${{ github.repository }}", "templates_ref": "${{ inputs.templates_ref }}", "run_id": "${{ inputs.run_id }}", "cleanup_after": ${{ inputs.cleanup_after }}}'
           token: ${{ secrets.DISPATCH_TOKEN }}

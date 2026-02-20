@@ -47,11 +47,19 @@ format: black-format
 install-dev:
 	uv sync --group dev
 
-# Run test harness workflow
+# Run test harness workflow (with default cleanup)
 run-test-harness:
 	gh workflow run --repo brianpatrickreavey/psr-templates dispatch-test-harness.yml \
 		-f templates_ref=main \
-		-f run_id=gha-test-run-$$(date +%Y%m%d-%H%M%S)
+		-f run_id=gha-test-run-$$(date +%Y%m%d-%H%M%S) \
+		-f cleanup_after=true
+
+# Run test harness workflow (keep artifacts for inspection)
+run-test-harness-keep-artifacts:
+	gh workflow run --repo brianpatrickreavey/psr-templates dispatch-test-harness.yml \
+		-f templates_ref=main \
+		-f run_id=gha-test-run-$$(date +%Y%m%d-%H%M%S) \
+		-f cleanup_after=false
 
 # Watch the latest test harness run in fixture repo
 watch-test-harness-output:
