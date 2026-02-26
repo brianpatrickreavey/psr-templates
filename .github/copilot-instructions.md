@@ -24,6 +24,24 @@ Prioritize correct, robust code; avoid workarounds, shortcuts, or bad patterns.
 
 - Always use the python-semantic-release GitHub Action in CI workflows. Never replace it with run commands or other execution methods.
 
+## Terminal Output Best Practices
+
+- DO NOT use `head`, `tail`, `grep`, or other filtering commands inline with long-running commands
+- Instead, use `tee` to redirect output directly to a log file
+- Then analyze the log file with filtering commands to investigate specific issues
+- This preserves the full output for debugging while keeping the conversation clean
+
+Example:
+```bash
+# Don't do this:
+make ci-simulate-consolidated-gitea 2>&1 | head -200
+
+# Do this instead:
+make ci-simulate-consolidated-gitea 2>&1 | tee test-run.log
+# Then if needed:
+head -200 test-run.log
+```
+
 ## Development Documentation
 
 Detailed development practices and guidelines are maintained in the `docs/development/` directory:

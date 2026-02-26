@@ -64,7 +64,7 @@ run-test-harness-keep-artifacts:
 # Watch the latest test harness run in fixture repo
 watch-test-harness-output:
 	@echo "Finding the latest workflow run in psr-templates-fixture..."
-	@RUN_ID=$$(gh run list --repo brianpatrickreavey/psr-templates-fixture --workflow="test-harness-consolidated-with-gitea.yml" --limit 1 --json databaseId -q '.[0].databaseId'); \
+	@RUN_ID=$$(gh run list --repo brianpatrickreavey/psr-templates-fixture --workflow="test-harness.yml" --limit 1 --json databaseId -q '.[0].databaseId'); \
 	if [ -z "$$RUN_ID" ]; then \
 		echo "No recent runs found."; \
 		exit 1; \
@@ -75,12 +75,12 @@ watch-test-harness-output:
 # Get status of the latest test harness run
 status-test-harness:
 	@echo "Latest test harness run status:"
-	@gh run list --repo brianpatrickreavey/psr-templates-fixture --workflow="test-harness-consolidated-with-gitea.yml" --limit 1
+	@gh run list --repo brianpatrickreavey/psr-templates-fixture --workflow="test-harness.yml" --limit 1
 
 # View logs of the latest test harness run
 logs-test-harness:
 	@echo "Fetching logs for the latest test harness run..."
-	@RUN_ID=$$(gh run list --repo brianpatrickreavey/psr-templates-fixture --workflow="test-harness-consolidated-with-gitea.yml" --limit 1 --json databaseId -q '.[0].databaseId'); \
+	@RUN_ID=$$(gh run list --repo brianpatrickreavey/psr-templates-fixture --workflow="test-harness.yml" --limit 1 --json databaseId -q '.[0].databaseId'); \
 	if [ -z "$$RUN_ID" ]; then \
 		echo "No recent runs found."; \
 		exit 1; \

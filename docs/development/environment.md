@@ -76,11 +76,12 @@ make mypy        # Type checking
 In the fixture repo (`psr-templates-fixture`):
 
 ```bash
-make ci-simulate
+make ci-simulate-consolidated-gitea
 ```
 
-- Runs full GitHub Actions workflow locally using `act`
-- Tests behavior with different Python versions (3.8-3.12)
+- Runs full GitHub Actions test harness locally using `act`
+- Executes complete 5-phase semantic versioning test cycle
+- Includes embedded Gitea service for isolated git operations
 - Safe: All artifacts created in isolated fixture repo only
 
 ## Local Testing with `act` and Gitea

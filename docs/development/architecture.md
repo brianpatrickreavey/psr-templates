@@ -90,16 +90,39 @@ The CI/test harness is designed to validate PSR template placement and semantic 
 
 ### Multi-Phase Release Testing (5 Phases)
 
-The workflow executes 5 sequential release phases to validate version progression:
+The workflow executes 5 sequential release phases to validate semantic versioning precedence and release logic. Each phase appends new commits to the repository, and PSR calculates the correct version bump based on commit messages and accumulated state.
 
-1. **Phase 1**: Feature commits → v0.1.0 (minor bump from v0.0.0)
-2. **Phase 2**: Fix commits → v0.1.1 (patch bump)
-3. **Phase 3**: Feature commits with `force: major` → v1.0.0 (major bump)
-4. **Phase 4**: Documentation-only commits → v1.0.0 (no version change, docs-only)
-5. **Phase 5**: Fix commits → v1.0.1 (patch bump post-major)
+**Phase Design** (tests semantic versioning rules):
+
+1. **Phase 1: v0.1.0 - Minor Bump (Pure Features)**
+   - Commits: 2× `feat:`
+   - Expected: v0.1.0 (minor bump from v0.0.0)
+   - Tests: Basic feature versioning
+
+2. **Phase 2: v0.2.0 - Feature Precedence**
+   - Commits: 1× `fix:` + 1× `feat:`
+   - Expected: v0.2.0 (feature commits take precedence over fixes)
+   - Tests: Semantic version precedence rules
+
+3. **Phase 3: v1.0.0 - Force Major Override**
+   - Commits: 1× `fix:` + 1× `feat:` (same types as phase 2)
+   - Config: `force: major` override in phase config
+   - Expected: v1.0.0 (forced major bump overrides calculated version)
+   - Tests: Release override behavior
+
+4. **Phase 4: v1.0.0 - No Version Change (Docs Only)**
+   - Commits: 2× `docs:`
+   - Expected: v1.0.0 (no new release, docs-only commits filtered)
+   - Tests: Changelog filter rules, docs-only handling
+
+5. **Phase 5: v1.0.1 - Fix Precedence (Post-Major)**
+   - Commits: 1× `fix:` + 1× `docs:`
+   - Expected: v1.0.1 (fix commits take precedence over docs)
+   - Tests: Precedence rules PostRelease, patch versioning
 
 Each phase:
 - Generates phase-specific commits via `tools/generate_commits.py --phase N`
+- Pushes commits to test branch
 - Runs `psr-prepare` to prepare templates and context
 - Executes `python-semantic-release` to create tags and GitHub releases
 - (Optional) Builds and publishes Kodi addon artifacts if present
@@ -114,20 +137,61 @@ Each phase:
 
 ### Local Testing with `act` and Gitea
 
-For iterative development without polluting GitHub, the workflow supports local execution via `act`:
+For iterative development without polluting GitHub, the workflow supports local execution via `act` (a local GitHub Actions runner) with an embedded Gitea service for a self-contained git server.
 
-- **Service Container**: Gitea (`gitea/gitea:latest`) runs as a GitHub Actions service in local mode only
-- **Auto-Detection**: Workflow detects ACT mode via `$ACT` environment variable
-- **Local Git Server**: Test repository cloned/pushed to `http://localhost:3000/test-repo.git` (anonymous)
-- **No GitHub Artifacts**: All test commits, tags, and releases exist only in local gitea; nothing leaks to GitHub
+**Why Local Testing Matters:**
+- **No GitHub Artifacts**: Test tags, releases, and commits stay local; nothing leaks to your GitHub repository
+- **Fast Iteration**: Complete test cycle in seconds without network roundtrip to GitHub
+- **Reproducibility**: Local environment matches CI environment for deterministic testing
+- **Cost**: Avoids GitHub API quotas and workflow run minutes during development
+
+**Setup Requirements:**
+- `act` v0.48.0+ installed (GitHub Actions local runner)
+- Docker engine running
+- `jq` for JSON processing in scripts
+
+**How It Works:**
+
+The workflow auto-detects local execution mode:
+- **ACT Mode Detection**: Presence of `$ACT` environment variable (set by act runner)
+- **Gitea Service**: `gitea/gitea:latest` runs as service container (ACT mode only)
+- **Git Server URL**: Auto-switches between `http://localhost:3000` (local) or `https://github.com` (GitHub)
+- **Anonymous Access**: Gitea configured for anonymous clone/push without authentication
 
 **Running Local Tests:**
+
 ```bash
+# Clean previous test artifacts
 cd psr-templates-fixture
-act --file .github/workflows/test-harness.yml -j release-phase-1 --verbose
+make clean-gitea
+
+# Run all 5 phases locally (20-30 minutes depending on system)
+make ci-simulate-consolidated-gitea
+
+# Or run specific phase with act directly
+act repository_dispatch \
+  -W .github/workflows/test-harness.yml \
+  --secret GITHUB_TOKEN="$(gh auth token)" \
+  -j phase-1
 ```
 
-All 5 phases can be tested locally before any push to GitHub.
+**Output:**
+- All 5 phase commits tagged locally in Gitea
+- Kodi addon artifacts built to `.artifacts/` directory
+- Full workflow logs to console (--verbose for more detail)
+- Test cleanup automatic at end (tags, releases, branches)
+
+**Monitoring Progress:**
+- Each phase prints version calculated: "Release version: v0.X.Y"
+- Debug steps show git log, tag visibility, PSR starting point
+- Post-release-tests validate all releases completed successfully
+
+**Key Gotchas:**
+- First run downloads Gitea image (~200MB) - cache reused on subsequent runs
+- Cleanup may take 30-60 seconds per run
+- ACT requires resources (CPU/memory) for parallel job execution
+
+All 5 phases can be tested locally before any push to GitHub, achieving full validation with zero GitHub interaction.
 
 ### Key Principles
 
