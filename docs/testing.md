@@ -149,7 +149,7 @@ To simulate the GitHub Actions workflow locally with comprehensive 5-phase testi
 
 ```bash
 cd psr-templates-fixture
-make ci-simulate-consolidated-gitea    # Runs test-harness.yml workflow locally with Gitea service
+make ci-simulate    # Runs test-harness.yml workflow locally with 5-phase testing
 ```
 
 **Requirements:** Docker engine and `act` (v0.48.0+) installed. This runs all 5 phases with isolated Gitea service for full testing without GitHub interaction.
@@ -249,7 +249,7 @@ For testing GitHub Actions locally with full 5-phase validation:
 
 ```bash
 cd psr-templates-fixture
-make ci-simulate-consolidated-gitea
+make ci-simulate
 ```
 
 This runs the actual GitHub Actions workflows in Docker with an embedded Gitea service (requires Docker and act v0.48.0+).

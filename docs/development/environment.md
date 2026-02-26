@@ -76,7 +76,7 @@ make mypy        # Type checking
 In the fixture repo (`psr-templates-fixture`):
 
 ```bash
-make ci-simulate-consolidated-gitea
+make ci-simulate
 ```
 
 - Runs full GitHub Actions test harness locally using `act`

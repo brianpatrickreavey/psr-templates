@@ -34,10 +34,10 @@ Prioritize correct, robust code; avoid workarounds, shortcuts, or bad patterns.
 Example:
 ```bash
 # Don't do this:
-make ci-simulate-consolidated-gitea 2>&1 | head -200
+make ci-simulate 2>&1 | head -200
 
 # Do this instead:
-make ci-simulate-consolidated-gitea 2>&1 | tee test-run.log
+make ci-simulate 2>&1 | tee test-run.log
 # Then if needed:
 head -200 test-run.log
 ```

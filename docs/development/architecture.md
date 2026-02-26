@@ -166,7 +166,7 @@ cd psr-templates-fixture
 make clean-gitea
 
 # Run all 5 phases locally (20-30 minutes depending on system)
-make ci-simulate-consolidated-gitea
+make ci-simulate
 
 # Or run specific phase with act directly
 act repository_dispatch \
